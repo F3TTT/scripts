@@ -72,19 +72,20 @@ DEFAULTS = {
     # remote — placeholders; real values land in ~/.rollins-sync/config.json
     "ssh_host": "USER@SEEDBOX.example.com",
     "remote_media_root": "~/media/Audio/Rollins-Archive",
-    # ABS — placeholders; real values land in ~/.rollins-sync/config.json
+    # ABS — placeholders; real values land in ~/.rollins-sync/config.json.
+    # Per-podcast ids live under category_settings.<slug>.abs_podcast_item_id.
     "abs": {
         "url": "https://YOUR-ABS-HOST.example.com",
         "username": "YOUR_ABS_USERNAME",
         "password": "",   # set in config.json before first run
         "library_id": "YOUR_ABS_LIBRARY_UUID",
-        "podcast_item_id": "YOUR_ABS_PODCAST_ITEM_UUID",
     },
     # per-category chapter detection. Keyed by target_subfolder so multiple
     # RSS categories that route to the same folder share settings.
     "category_settings": {
         "harmony-in-my-head": {
             # KCRW HIMH — commercial sponsor reads + KCRW pledge drives
+            "abs_podcast_item_id": "YOUR_ABS_PODCAST_ITEM_UUID_HIMH",
             "patterns": [
                 [r"KCRW sponsors? (?:include|comes?\s+from)", "KCRW sponsor"],
                 [r"support (?:for this show|comes?\s+from)", "Sponsor"],
@@ -98,6 +99,7 @@ DEFAULTS = {
         },
         "iggy-confidential": {
             # BBC 6 Music Iggy Confidential — no commercials, station IDs only
+            "abs_podcast_item_id": "YOUR_ABS_PODCAST_ITEM_UUID_IGGY",
             "patterns": [
                 [r"BBC\s*(?:Radio\s*)?6\s*music", "BBC 6 Music ID"],
                 [r"\b(?:six|6)\s+music\b", "6 Music ID"],
@@ -387,10 +389,10 @@ def abs_login(cfg: dict) -> str:
     return (d.get("user") or {}).get("token") or d.get("token") or ""
 
 
-def abs_find_episode_id(cfg: dict, token: str, file_basename: str) -> str | None:
+def abs_find_episode_id(cfg: dict, token: str, podcast_item_id: str, file_basename: str) -> str | None:
     """Find ABS episode id matching the file basename (e.g. for delete-and-rediscover)."""
     req = urllib.request.Request(
-        f"{cfg['url']}/api/items/{cfg['podcast_item_id']}?expanded=1",
+        f"{cfg['url']}/api/items/{podcast_item_id}?expanded=1",
         headers={"Authorization": f"Bearer {token}"},
     )
     item = json.loads(urllib.request.urlopen(req, timeout=15).read())
@@ -402,18 +404,21 @@ def abs_find_episode_id(cfg: dict, token: str, file_basename: str) -> str | None
     return None
 
 
-def abs_refresh_episode(cfg: dict, file_basename: str) -> None:
+def abs_refresh_episode(cfg: dict, podcast_item_id: str, file_basename: str) -> None:
     """Delete the episode entry then trigger library scan so ABS re-reads file
     metadata (chapters). Safe when no listening progress has been made."""
+    if not podcast_item_id:
+        log("  ABS refresh: no podcast_item_id for this category — skipping")
+        return
     try:
         token = abs_login(cfg)
         if not token:
             log("  ABS login: empty token")
             return
-        ep_id = abs_find_episode_id(cfg, token, file_basename)
+        ep_id = abs_find_episode_id(cfg, token, podcast_item_id, file_basename)
         if ep_id:
             req = urllib.request.Request(
-                f"{cfg['url']}/api/podcasts/{cfg['podcast_item_id']}/episode/{ep_id}?hard=0",
+                f"{cfg['url']}/api/podcasts/{podcast_item_id}/episode/{ep_id}?hard=0",
                 method="DELETE",
                 headers={"Authorization": f"Bearer {token}"},
             )
@@ -510,7 +515,8 @@ def process_item(item: dict, cfg: dict, state: dict) -> None:
         )
 
         log("  ABS: delete-and-rediscover so new chapters get read into episode db")
-        abs_refresh_episode(cfg["abs"], mp3_basename)
+        podcast_id = (cat_settings or {}).get("abs_podcast_item_id")
+        abs_refresh_episode(cfg["abs"], podcast_id, mp3_basename)
 
     state["downloaded_guids"].append(item["guid"])
     save_state(state)
