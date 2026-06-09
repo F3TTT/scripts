@@ -98,9 +98,22 @@ DEFAULTS = {
             "block_len_s": 60,
         },
         "iggy-confidential": {
-            # BBC 6 Music Iggy Confidential — no commercials, station IDs only
+            # BBC 6 Music Iggy Confidential — no commercials. Station IDs +
+            # "Coming up later" promos read over a music bed (e.g. "Dance the
+            # musical spectrum with Mary Ann Hobbs"). Promos need medium.en +
+            # silero VAD to extract; small.en without VAD misses them entirely.
             "abs_podcast_item_id": "YOUR_ABS_PODCAST_ITEM_UUID_IGGY",
+            "whisper_model": os.path.join(HOME, "tools/whisper.cpp/models/ggml-medium.en.bin"),
+            "vad_model":     os.path.join(HOME, "tools/whisper.cpp/models/ggml-silero-v5.1.2.bin"),
+            "vad_threshold": 0.4,
             "patterns": [
+                # Promos first (more specific). "ID - BBC promo" chapter title
+                # is good enough — user just needs to skip past it.
+                [r"\bcoming up (?:in an? )?(?:hour|few|moment)\b", "BBC promo"],
+                [r"\bnext on (?:six|6)\s+music\b", "BBC promo"],
+                [r"\btonight at \d", "BBC promo"],
+                [r"\bdon'?t miss\b", "BBC promo"],
+                # Then existing station IDs
                 [r"BBC\s*(?:Radio\s*)?6\s*music", "BBC 6 Music ID"],
                 [r"\b(?:six|6)\s+music\b", "6 Music ID"],
                 [r"\bask your smart speaker\b", "Smart speaker ID"],
@@ -222,13 +235,20 @@ def to_wav_16k(mp3: str, wav: str) -> None:
     )
 
 
-def transcribe(wav: str, bin_path: str, model: str, threads: int, out_prefix: str) -> str:
-    """Run whisper.cpp, return path to SRT."""
-    subprocess.run(
-        [bin_path, "-m", model, "-f", wav, "-t", str(threads),
-         "-osrt", "-of", out_prefix],
-        check=True, stdin=subprocess.DEVNULL,
-    )
+def transcribe(wav: str, bin_path: str, model: str, threads: int, out_prefix: str,
+               vad_model: str | None = None, vad_threshold: float = 0.5) -> str:
+    """Run whisper.cpp, return path to SRT.
+
+    If vad_model is given, enables silero VAD pre-pass. This is what lets
+    medium.en pick up speech buried under music beds (e.g. BBC "coming up"
+    promos read over a music track). Without VAD, whisper segments tend to
+    over-stretch into music and miss the spoken word.
+    """
+    cmd = [bin_path, "-m", model, "-f", wav, "-t", str(threads),
+           "-osrt", "-of", out_prefix]
+    if vad_model:
+        cmd += ["--vad", "-vm", vad_model, "-vt", str(vad_threshold)]
+    subprocess.run(cmd, check=True, stdin=subprocess.DEVNULL)
     srt = out_prefix + ".srt"
     if not os.path.exists(srt):
         raise RuntimeError(f"whisper produced no SRT: {srt}")
@@ -475,11 +495,20 @@ def process_item(item: dict, cfg: dict, state: dict) -> None:
             log("  ffmpeg -> 16kHz mono WAV")
             to_wav_16k(mp3_path, wav_path)
 
-            log(f"  whisper.cpp (model: {os.path.basename(cfg['whisper_model'])}, "
-                f"{cfg['whisper_threads']} threads) — this takes ~30 min for 2 hr audio")
+            # Per-category overrides for model + VAD (Iggy uses medium.en + silero
+            # VAD to extract BBC promos buried under music beds; HIMH uses small.en
+            # with no VAD since KCRW sponsor reads are clean voiceover).
+            whisper_model = cat_settings.get("whisper_model", cfg["whisper_model"])
+            vad_model = cat_settings.get("vad_model")
+            vad_threshold = cat_settings.get("vad_threshold", 0.5)
+            log(f"  whisper.cpp (model: {os.path.basename(whisper_model)}, "
+                f"{cfg['whisper_threads']} threads"
+                f"{', VAD on' if vad_model else ''})"
+                f" — medium+VAD takes ~60 min/2hr; small no-VAD ~30 min")
             transcribe(
-                wav_path, cfg["whisper_bin"], cfg["whisper_model"],
+                wav_path, cfg["whisper_bin"], whisper_model,
                 cfg["whisper_threads"], os.path.join(tmp, "transcript"),
+                vad_model=vad_model, vad_threshold=vad_threshold,
             )
             os.remove(wav_path)   # free disk fast (~235 MB)
             # Cache + rotate to keep newest N per category
