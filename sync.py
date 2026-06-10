@@ -105,6 +105,9 @@ DEFAULTS = {
                 [r"\byou'?re listening to\b", "Station ID"],
                 [r"\blive from KCRW\b", "KCRW music promo"],
                 [r"\bVintage 24\b", "Vintage 24 promo"],
+                # Recurring named show segments — user wants these as
+                # skippable chapters too, not just hard ads.
+                [r"\bminute with [mM]iriam\b", "Miriam segment"],
             ],
             "marker_prefix": "AD",
             "merge_window_s": 120,
