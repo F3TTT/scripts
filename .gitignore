@@ -5,3 +5,18 @@ __pycache__/
 config.json
 state.json
 *_state.json
+
+# Scratchpad helpers that hardcode seedbox creds — keep local-only.
+scratchpad/sonarr-audit.py
+scratchpad/qbit-active-and-snowfall.py
+scratchpad/cleanup-plan.py
+scratchpad/verify-and-snowfall.py
+scratchpad/plex-debug.py
+scratchpad/add-blackout.py
+scratchpad/blackout-grab.py
+scratchpad/blackout-prowlarr-grab.py
+scratchpad/blackout-qbit-direct.py
+scratchpad/blackout-print-url.py
+scratchpad/blackout-drop-watch.py
+scratchpad/blackout-magnet.py
+scratchpad/search-blackout.py
