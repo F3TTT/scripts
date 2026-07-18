@@ -7,7 +7,8 @@ Runs locally on WSL (laptop) because:
   - laptop has more CPU per dollar
 
 For each new episode in a watched category:
-  1. download zip from MediaFire (curl -L follows the temp redirect)
+  1. download zip (MediaFire for recent episodes — curl -L follows the temp
+        redirect; older backfill episodes are hosted on rollins-archive itself)
   2. extract single MP3
   3. transcode to 16 kHz mono WAV (whisper.cpp's preferred input)
   4. transcribe with whisper.cpp + small.en model -> SRT
@@ -35,6 +36,7 @@ No external Python deps — stdlib only.
 
 from __future__ import annotations
 
+import fcntl
 import json
 import os
 import re
@@ -55,6 +57,7 @@ CONFIG = os.path.join(ROOT, "config.json")
 STATE = os.path.join(ROOT, "state.json")
 LOG_DIR = os.path.join(ROOT, "log")
 WORK = os.path.join(ROOT, "work")
+LOCK = os.path.join(ROOT, "pipeline.lock")
 
 DEFAULTS = {
     "rss_url": "https://rollins-archive.com/?format=feed&type=rss",
@@ -201,7 +204,7 @@ def parse_rss(xml_bytes: bytes) -> list:
             "title": title,
             "guid": guid,
             "categories": cats,
-            "mediafire_url": mf.group(0) if mf else None,
+            "download_url": mf.group(0) if mf else None,
         })
     return items
 
@@ -211,7 +214,7 @@ def filter_new(items: list, state: dict, categories: dict) -> list:
     for it in items:
         if it["guid"] in state["downloaded_guids"]:
             continue
-        if not it["mediafire_url"]:
+        if not it["download_url"]:
             continue
         match = next((c for c in it["categories"] if c in categories), None)
         if not match:
@@ -220,6 +223,41 @@ def filter_new(items: list, state: dict, categories: dict) -> list:
         it["category_match"] = match
         out.append(it)
     return out
+
+
+# ----- run lock -----
+
+# Held open for the life of the process — closing it releases the lock, so the
+# handle must outlive acquire_pipeline_lock()'s stack frame.
+_lock_fh = None
+
+
+def acquire_pipeline_lock() -> bool:
+    """Take the exclusive pipeline lock. Returns False if another run holds it.
+
+    One lock is shared by sync.py and iggy-backfill.py rather than one each:
+    the resource under contention is the CPU (whisper saturates all 8 threads),
+    so two *different* scripts transcribing at once is just as bad as two copies
+    of the same one. Observed 2026-07-18 — a manual backfill run and the 06:00
+    scheduled one both picked episode #495, downloaded the same 108 MB zip, and
+    transcribed the same audio side by side at roughly half speed each.
+
+    flock is released by the kernel when the process dies, including on SIGKILL
+    and on a laptop that suspends mid-run, so a crashed run cannot leave a stale
+    lock behind the way a PID file would.
+    """
+    global _lock_fh
+    os.makedirs(ROOT, exist_ok=True)
+    fh = open(LOCK, "w")
+    try:
+        fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        fh.close()
+        return False
+    fh.write(f"{os.getpid()}\n")
+    fh.flush()
+    _lock_fh = fh
+    return True
 
 
 # ----- download + extract -----
@@ -477,8 +515,8 @@ def process_item(item: dict, cfg: dict, state: dict) -> None:
     log(f"--- {item['title']!r} [{item['category_match']}]")
     with tempfile.TemporaryDirectory(dir=WORK) as tmp:
         zip_path = os.path.join(tmp, "ep.zip")
-        log("  download mediafire zip")
-        download_zip(item["mediafire_url"], zip_path, cfg["user_agent"])
+        log("  download zip")
+        download_zip(item["download_url"], zip_path, cfg["user_agent"])
 
         mp3_path = extract_single_mp3(zip_path, tmp)
         mp3_basename = os.path.basename(mp3_path)
@@ -569,6 +607,9 @@ def process_item(item: dict, cfg: dict, state: dict) -> None:
 
 
 def main() -> int:
+    if not acquire_pipeline_lock():
+        log("another pipeline run holds the lock — exiting")
+        return 0
     os.makedirs(WORK, exist_ok=True)
     cfg = load_config()
     state = load_state()

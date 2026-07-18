@@ -58,39 +58,100 @@ def save_state(state: dict) -> None:
 
 # ---------- year page scraping ----------
 
+# The show was slugged `iggy-pop-NN-title` in the early years and renamed to
+# `iggy-confidential-NNN-title` later on. Matching only the latter made every
+# pre-rename year look empty, which the walk below read as "already done".
 EPISODE_RE = re.compile(
-    r'/iggy/iggy-(?P<year>\d{4})/(?P<slug>\d+-iggy-confidential-(?P<num>\d+)-[a-z0-9-]+)'
+    r'/iggy/iggy-(?P<year>\d{4})/'
+    r'(?P<slug>(?P<artid>\d+)-iggy-(?:confidential|pop)-[a-z0-9-]+)'
 )
+# Episode number, where there is one. Some early items are unnumbered specials
+# (`iggy-pop-the-john-peel-lecture`) and some carry a letter suffix (`14b`).
+EPISODE_NUM_RE = re.compile(r'-iggy-(?:confidential|pop)-(\d+[a-z]?)-')
 MEDIAFIRE_RE = re.compile(r'https?://www\.mediafire\.com/file[^"<>]+')
+# Episode-page probes cost a request each. Cap them so a run of link-less
+# episodes can't turn one run into a burst against the archive.
+MAX_EPISODE_PROBES = 5
+PROBE_DELAY_S = 45
+# Recent episodes are offloaded to MediaFire; older ones are zips hosted on the
+# archive itself. Those are linked inconsistently — root-relative in some years
+# (`/2014/iggy27.zip`), absolute in others
+# (`http://www.rollins-archive.com/2025/Iggy_Confidential_2025-11-16.zip`) — so
+# match any .zip href and normalise afterwards.
+ARCHIVE_ZIP_RE = re.compile(r'href="(?P<url>[^"]+\.zip)"', re.I)
 
 
-def fetch_year_page(year: int, ua: str) -> str:
-    url = f"https://rollins-archive.com/iggy/iggy-{year}"
-    req = urllib.request.Request(url, headers={"User-Agent": ua})
+def fetch_page(url: str, ua: str, referer: str | None = None) -> str:
+    headers = {"User-Agent": ua}
+    if referer:
+        headers["Referer"] = referer
+    req = urllib.request.Request(url, headers=headers)
     return urllib.request.urlopen(req, timeout=30).read().decode("utf-8", errors="replace")
 
 
-def parse_year_episodes(html: str) -> list[dict]:
-    """Returns list of {num, slug, guid, mediafire_url}, newest-first
-    by episode number. Each episode is associated to the first MediaFire URL
-    within ~3000 chars after the link in the HTML."""
+def fetch_year_page(year: int, ua: str) -> str:
+    return fetch_page(f"https://rollins-archive.com/iggy/iggy-{year}", ua)
+
+
+def parse_year_episodes(html: str, year: int) -> list[dict]:
+    """Returns list of {num, artid, slug, guid} for `year`, newest-first.
+
+    Only episodes whose URL year matches `year` are returned — a year listing
+    also links to neighbouring years in its nav, and letting those through
+    would mark the wrong year exhausted.
+
+    Ordering is by Joomla article id, not episode number: it is present on
+    every item (numbers are not) and increases monotonically with post date.
+    """
     items = {}
     for m in EPISODE_RE.finditer(html):
-        num = m.group("num")
-        if num in items:
+        if int(m.group("year")) != year:
             continue
         slug = m.group("slug")
-        year = m.group("year")
-        region = html[m.end():m.end() + 3000]
-        mf = MEDIAFIRE_RE.search(region)
-        items[num] = {
-            "num": int(num),
-            "year": int(year),
+        if slug in items:
+            continue
+        num_m = EPISODE_NUM_RE.search(slug)
+        items[slug] = {
+            "num": num_m.group(1) if num_m else None,
+            "artid": int(m.group("artid")),
+            "year": year,
             "slug": slug,
             "guid": f"https://rollins-archive.com/iggy/iggy-{year}/{slug}",
-            "mediafire_url": mf.group(0) if mf else None,
+            # Recent years render the full article inline, download link and all.
+            "download_url": extract_download_url(html[m.end():m.end() + 3000]),
         }
-    return sorted(items.values(), key=lambda x: x["num"], reverse=True)
+    return sorted(items.values(), key=lambda x: x["artid"], reverse=True)
+
+
+def extract_download_url(html: str) -> str | None:
+    """Pull a zip link out of a chunk of article HTML.
+
+    Recent episodes are offloaded to MediaFire; older ones are zips hosted on
+    the archive itself and linked relative.
+    """
+    mf = MEDIAFIRE_RE.search(html)
+    if mf:
+        return mf.group(0)
+    zip_m = ARCHIVE_ZIP_RE.search(html)
+    if not zip_m:
+        return None
+    url = zip_m.group("url")
+    if url.startswith("//"):
+        return "https:" + url
+    if url.startswith("http"):
+        # Normalise to https — the archive links some zips over plain http.
+        return "https://" + url.split("://", 1)[1]
+    return "https://rollins-archive.com" + ("" if url.startswith("/") else "/") + url
+
+
+def find_download_url(guid: str, ua: str) -> str | None:
+    """Fetch a single episode page and pull its zip link.
+
+    Only needed for years whose listing shows intros rather than full articles —
+    the link is on the episode page in that case. Costs one extra request.
+    """
+    html = fetch_page(guid, ua, referer=guid.rsplit("/", 1)[0])
+    return extract_download_url(html)
 
 
 # ---------- main ----------
@@ -100,7 +161,9 @@ def pick_next_episode(state: dict, cfg: dict) -> dict | None:
     been processed yet. If a year is fully processed, mark it exhausted and
     move back one year."""
     year = state["next_year"]
-    earliest_year = 2009  # Iggy Confidential started ~2010 on BBC 6 Music
+    # The archive's Iggy nav runs 2013-2026; nothing exists before that.
+    earliest_year = 2013
+    probes = 0
     while year >= earliest_year:
         sync.log(f"iggy: scanning year {year}")
         try:
@@ -113,15 +176,34 @@ def pick_next_episode(state: dict, cfg: dict) -> dict | None:
                 year -= 1
                 continue
             raise
-        episodes = parse_year_episodes(html)
+        episodes = parse_year_episodes(html, year)
         sync.log(f"  year {year}: {len(episodes)} episodes on page")
+        done = set(state["processed_guids"]) | set(
+            sync.load_state().get("downloaded_guids", [])
+        )
+        # Episodes we probed and found no zip for. Tracked separately from
+        # processed_guids so "we have this" and "this had no file" stay
+        # distinguishable — clear the list to re-probe if the archive backfills
+        # its own links later.
+        no_download = set(state.setdefault("no_download_guids", []))
         for ep in episodes:
-            if ep["guid"] in state["processed_guids"]:
+            if ep["guid"] in done or ep["guid"] in no_download:
                 continue
-            if ep["guid"] in sync.load_state().get("downloaded_guids", []):
+            url = ep.get("download_url")
+            if not url:
+                if probes >= MAX_EPISODE_PROBES:
+                    sync.log(f"  probe budget spent ({probes}) — resuming here next run")
+                    return None
+                if probes:
+                    time.sleep(PROBE_DELAY_S)
+                probes += 1
+                url = find_download_url(ep["guid"], cfg["user_agent"])
+            if not url:
+                sync.log(f"  no download link: {ep['slug']}")
+                state["no_download_guids"].append(ep["guid"])
+                save_state(state)
                 continue
-            if not ep["mediafire_url"]:
-                continue
+            ep["download_url"] = url
             return ep
         # Year exhausted — back to previous year
         sync.log(f"  year {year}: all processed, moving to {year - 1}")
@@ -132,6 +214,12 @@ def pick_next_episode(state: dict, cfg: dict) -> dict | None:
 
 
 def main() -> int:
+    # Shared with rollins-sync — see acquire_pipeline_lock() in sync.py for why
+    # it's one lock across both scripts rather than one each.
+    if not sync.acquire_pipeline_lock():
+        sync.log("iggy-backfill: another pipeline run holds the lock — exiting")
+        return 0
+
     cfg = sync.load_config()
     state = load_state()
     main_state = sync.load_state()
@@ -149,10 +237,11 @@ def main() -> int:
 
     sync.log(f"selected: year={ep['year']} num={ep['num']} guid={ep['guid'][:80]}")
 
+    label = f"#{ep['num']}" if ep["num"] else ep["slug"].split("-", 1)[1]
     item = {
-        "title": f"Iggy Confidential #{ep['num']} ({ep['year']}) — backfill",
+        "title": f"Iggy Confidential {label} ({ep['year']}) — backfill",
         "guid": ep["guid"],
-        "mediafire_url": ep["mediafire_url"],
+        "download_url": ep["download_url"],
         "target_subfolder": "iggy-confidential",
         "category_match": f"Iggy (backfill year {ep['year']})",
     }
