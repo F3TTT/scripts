@@ -343,21 +343,26 @@ def clean_title(s: str) -> str:
 
 def detect_ad_blocks(entries: list, patterns: list, merge_window_s: int, block_min_len_s: int) -> list:
     raw = []
-    for start, _end, text in entries:
+    for start, end, text in entries:
         for pat, label in patterns:
             if re.search(pat, text, re.I):
-                raw.append({"start": start, "label": label})
+                raw.append({"start": start, "end": end, "label": label})
                 break
 
     blocks = []
     for a in raw:
+        # Extend the marker to the real end of the matched transcript segment,
+        # but never shorter than block_min_len_s so a one-liner still yields a
+        # visible chapter. (Previously the end was hard-capped at
+        # start + block_min_len_s, truncating any break longer than that.)
+        seg_end = max(a["end"], a["start"] + block_min_len_s)
         if blocks and a["start"] - blocks[-1]["end"] < merge_window_s:
-            blocks[-1]["end"] = a["start"] + block_min_len_s
+            blocks[-1]["end"] = max(blocks[-1]["end"], seg_end)
             blocks[-1]["labels"].append(a["label"])
         else:
             blocks.append({
                 "start": a["start"],
-                "end": a["start"] + block_min_len_s,
+                "end": seg_end,
                 "labels": [a["label"]],
             })
     return blocks
