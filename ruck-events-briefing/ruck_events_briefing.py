@@ -184,8 +184,10 @@ def sweatpals_build_id() -> str:
     global _SP_BUILD_ID_CACHE
     if _SP_BUILD_ID_CACHE:
         return _SP_BUILD_ID_CACHE
-    # Sweatpals homepage always renders with the current buildId in its HTML.
-    html = http_get("https://www.sweatpals.com/")
+    # Sweatpals /discover is a generic public Next.js page that reliably renders
+    # the current buildId in its HTML (the homepage is a marketing landing that
+    # doesn't; individual host pages do but hardcoding one leaks the handle).
+    html = http_get("https://www.sweatpals.com/discover")
     m = re.search(r'"buildId":"([^"]+)"', html)
     if not m:
         raise RuntimeError("could not extract Sweatpals buildId — page structure may have changed")
