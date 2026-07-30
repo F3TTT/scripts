@@ -1,0 +1,38 @@
+# Python build artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Local editor / IDE / OS junk
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Claude Code local state (contains API keys / tokens embedded in permission strings)
+.claude/settings.local.json
+.claude/*.local.json
+
+# Secrets / local config (per-project real-value config files live in ~/.<project>/,
+# outside this repo — this rule just catches any *.local.* files inside the repo)
+*.local.json
+*.local.sh
+.env
+.env.*
+!.env.example
+
+# Personal data — Garmin health export, tokens
+garmin_trends/data/
+garmin_trends/.garmin_tokens/
+
+# Rollins scratchpad — exploratory / one-off scripts with local paths and personal patterns.
+# Kept out of the public monorepo (still present locally for reference).
+rollins-archive-sync/scratchpad/
+
+# Local ad-hoc scratch scripts (prefixed with .tmp-)
+.tmp-*
+*.tmp

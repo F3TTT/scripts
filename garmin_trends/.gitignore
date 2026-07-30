@@ -1,0 +1,4 @@
+venv/
+.env
+.garmin_tokens/
+data/
