@@ -40,6 +40,10 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 
 # Traditional/public-domain Buddhist blessings — one picked at random each morning.
+# Deliberately spread across different teachings/themes (metta, impermanence, mind
+# training, gratitude) rather than all being metta-formula variants, since a pool
+# that's mostly reworded "may all beings be happy" lines reads as repetitive even
+# when the pick is genuinely random.
 BLESSINGS = [
     "May all beings be happy. May all beings be free from suffering. "
     "May all beings never be separated from the great happiness devoid of suffering. "
@@ -48,15 +52,8 @@ BLESSINGS = [
     "May you be free from danger. May you have mental happiness. "
     "May you have physical happiness. May you have ease of well-being.",
 
-    "May all beings everywhere be happy and free, and may the thoughts, words, "
-    "and actions of my own life contribute in some way to that happiness and to "
-    "that freedom for all.",
-
     "Just as a mother would protect her only child with her life, even so let one "
     "cultivate a boundless heart towards all beings.",
-
-    "May I be filled with loving kindness. May I be well. "
-    "May I be peaceful and at ease. May I be happy.",
 
     "Peace comes from within. Do not seek it without.",
 
@@ -65,7 +62,32 @@ BLESSINGS = [
     "You yourself, as much as anybody in the entire universe, deserve your love "
     "and affection.",
 
-    "May you be well. May you be happy. May you be free from suffering.",
+    "In the sky, there is no distinction of east and west; people create "
+    "distinctions out of their own minds and then believe them to be true.",
+
+    "Holding onto anger is like drinking poison and expecting the other person "
+    "to die.",
+
+    "The mind is everything. What you think, you become.",
+
+    "Do not dwell in the past, do not dream of the future, concentrate the mind "
+    "on the present moment.",
+
+    "A jug fills drop by drop.",
+
+    "Better than a thousand hollow words is one word that brings peace.",
+
+    "There is no path to happiness. Happiness is the path.",
+
+    "If you light a lamp for somebody, it will also brighten your own path.",
+
+    "Nothing ever exists entirely alone. Everything is in relation to everything else.",
+
+    "Every morning we are born again. What we do today is what matters most.",
+
+    "Let go of the things that no longer serve you, and make room for what does.",
+
+    "Gratitude for what is here now is itself a form of wealth.",
 ]
 
 # ----- paths -----
@@ -231,7 +253,9 @@ def get_headlines(feeds: dict, ua: str) -> list[tuple[str, str]]:
 def build_script(weather: str, beach: str, headlines: list[tuple[str, str]], greeting_name: str) -> str:
     date_str = datetime.now().strftime("%A, %B %-d")
     lines = [f"Good morning, {greeting_name}."]
-    lines.append(random.choice(BLESSINGS))
+    blessing_idx = random.SystemRandom().randrange(len(BLESSINGS))
+    log(f"  blessing #{blessing_idx}: {BLESSINGS[blessing_idx][:50]}...")
+    lines.append(BLESSINGS[blessing_idx])
     lines.append(f"Here's your briefing for {date_str}.")
     lines.append(f"Weather: {weather}")
     lines.append(beach)
