@@ -8,7 +8,7 @@
 [ -f "$SEEDBOX_CONFIG" ] || { echo "ERROR: missing $SEEDBOX_CONFIG" >&2; exit 1; }
 # shellcheck source=/dev/null
 source "$SEEDBOX_CONFIG"
-: "${S_KEY:?}" "${R_KEY:?}" "${SONARR:?}" "${RADARR:?}" "${PLEX:?}" "${PLEX_TOKEN:?}"
+: "${S_KEY:?}" "${R_KEY:?}" "${SONARR:?}" "${RADARR:?}" "${PLEX:?}" "${PLEX_TOKEN:?}" "${BAZARR:?}" "${BAZARR_KEY:?}"
 DL="$HOME/downloads/qbittorrent"
 
 # Cron doesn't inherit the user's systemd session env, so `systemctl --user`
@@ -107,7 +107,7 @@ quota -s 2>/dev/null | tail -1 | awk '{printf "    used=%s quota=%s limit=%s\n",
 # 4. Service health (port-level)
 echo
 echo "[4] Services"
-for portname in 18725:plex 18726:sonarr 18727:radarr 18741:qbittorrent; do
+for portname in 18725:plex 18726:sonarr 18727:radarr 18731:bazarr 18741:qbittorrent; do
     PORT=${portname%:*}
     NAME=${portname#*:}
     if (echo > /dev/tcp/127.0.0.1/$PORT) 2>/dev/null; then
