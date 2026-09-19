@@ -123,8 +123,20 @@ def load_config() -> dict:
 
 # ----- step 1: headless Claude check -----
 
+def winpath(p: str) -> str:
+    """Convert a WSL path to the Windows form claude.exe expects.
+
+    claude_exe is a Windows binary launched from WSL, so it reads a path like
+    /home/user/x as C:\\home\\user\\x. Anything handed to it (prompt paths,
+    --add-dir) must be a Windows path; this script keeps using WSL paths."""
+    return subprocess.run(["wslpath", "-w", p], capture_output=True, text=True,
+                          check=True).stdout.strip()
+
+
 def build_prompt(cfg: dict, lookback_months: int, results_path: str) -> str:
     today = datetime.now().strftime("%Y-%m-%d")
+    # Windows-form paths for the prompt text only; the script itself keeps WSL paths.
+    results_path, STATE_W, BOOKS_MD_W = winpath(results_path), winpath(STATE), winpath(BOOKS_MD)
     awards_block = "\n".join(
         f"{i}. {a['name']} — stages: {a['stages']}"
         for i, a in enumerate(cfg["awards"], start=1)
@@ -139,13 +151,13 @@ TASK: Check the book awards listed below for newly-announced longlists/
 shortlists/winners, and for each newly-announced list, recommend exactly one
 book from that list based on the reader's taste profile.
 
-TASTE PROFILE: Read {BOOKS_MD} for the reader's likes/dislikes/ratings before
+TASTE PROFILE: Read {BOOKS_MD_W} for the reader's likes/dislikes/ratings before
 picking anything. Weight picks toward: absurdist/comic fiction with substance,
 wartime/postcolonial fiction with wit, sharp well-plotted prose, and
 character-driven crime/noir. Avoid: bleak literary fiction, preachy/saccharine
 tone, and generic thriller machinery.
 
-STATE: Read {STATE} (a JSON file; if missing or unreadable, treat it as
+STATE: Read {STATE_W} (a JSON file; if missing or unreadable, treat it as
 {{"awards": {{}}}}). For each award below, its entry's "covered" list records
 stage-year strings (e.g. "shortlist-2026") already reported. Only report a
 stage-year if it is NOT already in "covered" for that award AND it was
@@ -182,12 +194,12 @@ OUTPUT CONTRACT (follow exactly):
    run — to {results_path}. Each element:
    {{"award": str, "stage": "longlist"|"shortlist"|"winner", "year": int,
      "book_title": str, "author": str, "reason": str, "summary": str}}
-2. Update {STATE}: for every stage-year you included in step 1's output, add
+2. Update {STATE_W}: for every stage-year you included in step 1's output, add
    its "stage-year" string to that award's "covered" list (create the award's
    entry if it's new). Preserve every pre-existing entry and every other
    award untouched. Write the full updated JSON back to the same path.
 3. If and only if step 1's output array is non-empty, append one line per
-   entry to a "## Award Picks" section at the end of {BOOKS_MD} (create that
+   entry to a "## Award Picks" section at the end of {BOOKS_MD_W} (create that
    section if it doesn't exist yet) in the form:
    `- **{{book_title}}** — {{author}} ({{award}} {{stage}} {{year}})`
    Do not modify or remove anything else in that file.
@@ -207,8 +219,8 @@ def run_claude_check(cfg: dict, prompt: str) -> bool:
         "--output-format", "json",
         "--permission-mode", "default",
         "--allowedTools", "WebSearch,Read,Write,Edit",
-        "--add-dir", WORK,
-        "--add-dir", ENTERTAINMENT_DIR,
+        "--add-dir", winpath(WORK),
+        "--add-dir", winpath(ENTERTAINMENT_DIR),
     ]
     log(f"  invoking claude headless: {' '.join(cmd)}")
     try:
@@ -228,8 +240,12 @@ def run_claude_check(cfg: dict, prompt: str) -> bool:
         cost = envelope.get("total_cost_usd")
         is_error = envelope.get("is_error")
         log(f"  claude check completed: is_error={is_error} cost=${cost}")
-        if is_error:
-            log(f"  claude result: {str(envelope.get('result'))[:500]}")
+        # Always log the result text and any permission denials: a "successful"
+        # run that never writes the results file is otherwise undiagnosable.
+        log(f"  claude result: {str(envelope.get('result'))[:1000]}")
+        denials = envelope.get("permission_denials")
+        if denials:
+            log(f"  claude permission denials: {json.dumps(denials)[:1000]}")
     except json.JSONDecodeError:
         log(f"  claude check: non-JSON stdout (first 500 chars): {proc.stdout[:500]}")
 

@@ -31,7 +31,7 @@ version and points there for specifics.
 |---|---|---|
 | `garmin_trends/` | Pulls Garmin Connect data (via WSL venv + `garminconnect` lib) into weekly trend/insights reports. `garmin_client.py` (auth/session), `pull_report.py` (main trend report), `activity_log.py` (recent activities), `intensity_minutes_report.py` (yearly weekly intensity-minutes aggregate). | [[reference_garmin_trends_tool]] |
 | `morning-briefing/` | `briefing.py` — daily audio briefing generated fresh each morning (WSL). | — |
-| `book-awards-briefing/` | `book_awards_briefing.py` — monthly audio briefing on newly-announced book awards (WSL). Scheduled via `book-awards-monthly-task.xml`. | — |
+| `book-awards-briefing/` | `book_awards_briefing.py` — monthly audio briefing on newly-announced book awards (WSL). Scheduled via `book-awards-monthly-task.xml`. | `README.md` (see its claude.exe path gotcha) |
 | `ruck-events-briefing/` | `ruck_events_briefing.py` — weekly audio briefing on upcoming local ruck events (WSL). | — |
 | `rollins-archive-sync/` | Full pipeline syncing Henry Rollins's *Harmony In My Head* and Iggy Pop's *Iggy Confidential* into a self-hosted Audiobookshelf instance with ad/station-ID/promo chapter markers. `sync.py`, `iggy-backfill.py`, plus a `stinger-analysis/` subfolder. | Has its own `README.md` — read that first for this one, it's substantially more involved than a one-liner covers. |
 | `claude-memory-backup/` | `backup-memory.ps1` — backs up all projects' Claude Code memory plus global config (CLAUDE.md, settings, skills, commands; never credentials) — which live outside OneDrive's sync root — to OneDrive on a schedule, with daily/weekly/monthly tiers and verified atomic swaps. | Has its own `README.md`. |
@@ -61,5 +61,6 @@ version and points there for specifics.
 | `Personal Email Monitor Intake` | every 15 min | `email-monitor/run-scan.ps1` |
 
 Last-run status: check with `Get-ScheduledTask | Get-ScheduledTaskInfo` (nonzero `LastTaskResult`
-= failed). As of 2026-09-19, `book-awards-monthly` (9/1) and `iggy-backfill-daily` (9/19) last
-exited with result 1.
+= failed). As of 2026-09-19, `book-awards-monthly` (path bug: claude.exe wrote to `C:\home`) and
+`iggy-backfill-daily` (stale `~/.rollins-sync/sync.py` path) had both exited 1; the fixes are on
+branch `fix-book-awards-iggy` and take effect once merged into `C:\scripts`.

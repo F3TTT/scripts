@@ -31,7 +31,7 @@ from datetime import datetime
 
 ROOT = os.path.expanduser("~/.rollins-sync")
 STATE_PATH = os.path.join(ROOT, "iggy_backfill_state.json")
-SYNC_PY = os.path.join(ROOT, "sync.py")
+SYNC_PY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sync.py")
 
 # Load shared rollins-sync as a module so we can call its pipeline functions
 spec = importlib.util.spec_from_file_location("sync", SYNC_PY)

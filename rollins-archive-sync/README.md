@@ -27,8 +27,6 @@ For each new episode in a watched RSS category:
 
 ```
 ~/.rollins-sync/
-├── sync.py                  # deployed from this repo
-├── iggy-backfill.py         # deployed from this repo
 ├── config.json              # secrets live here, mode 600
 ├── state.json               # processed RSS GUIDs
 ├── iggy_backfill_state.json # backfill cursor (year + processed guids)
@@ -52,12 +50,11 @@ Windows Task Scheduler:
 
 | Task | Time | Command |
 |---|---|---|
-| `rollins-sync-daily` | 04:00 daily | `wsl.exe -d Ubuntu-24.04 -- bash -lc 'python3 ~/.rollins-sync/sync.py'` |
-| `iggy-backfill-daily` | 06:00 daily | `wsl.exe -d Ubuntu-24.04 -- bash -lc 'python3 ~/.rollins-sync/iggy-backfill.py'` |
+| `rollins-sync-daily` | 04:00 daily | `wsl.exe -d Ubuntu-24.04 -- bash -lc "python3 /mnt/c/scripts/rollins-archive-sync/sync.py"` |
+| `iggy-backfill-daily` | 02:00 daily | `wsl.exe -d Ubuntu-24.04 -- bash -lc "python3 /mnt/c/scripts/rollins-archive-sync/iggy-backfill.py"` |
 
 ## Deploy
 
-```powershell
-wsl -d Ubuntu-24.04 -- bash -c 'cp /mnt/c/scripts/rollins-archive-sync/sync.py ~/.rollins-sync/sync.py'
-wsl -d Ubuntu-24.04 -- bash -c 'cp /mnt/c/scripts/rollins-archive-sync/iggy-backfill.py ~/.rollins-sync/iggy-backfill.py'
-```
+There is no deploy step. The scheduled tasks run the scripts in place from `/mnt/c/scripts/rollins-archive-sync/`,
+and `iggy-backfill.py` loads `sync.py` from its own directory. `~/.rollins-sync/` holds only runtime
+data (config, state, cache, logs); a stale copy of the scripts there is not used.
