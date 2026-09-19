@@ -1,27 +1,40 @@
 # backup-memory.ps1
 #
-# Daily/weekly/monthly rotating backup of Claude Code's persistent memory
-# directory into OneDrive, so it survives a laptop loss (the .claude folder
-# itself sits outside OneDrive's sync root and is never backed up otherwise).
+# Daily/weekly/monthly rotating backup of Claude Code state into OneDrive, so it
+# survives a laptop loss (the .claude folder sits outside OneDrive's sync root
+# and is never backed up otherwise).
 #
-# Three independent retention tiers exist specifically so that if OneDrive's
-# sync corrupts or clobbers one copy, the other two tiers (taken at different
-# times, pruned on different schedules) give separate recovery points rather
-# than all three going bad together.
+# What gets backed up (snapshot layout):
+#   projects\<project-name>\memory\...   every project's memory dir that has files
+#   global\                              CLAUDE.md, settings.json, settings.local.json,
+#                                        statusline.js, keybindings.json, commands\, skills\
+# Deliberately NOT backed up: .credentials.json (secret), history/transcripts,
+# plugins\ (reinstallable), caches, file-history.
 #
-# Intended to run once daily via Windows Task Scheduler (see README.md in
-# this folder for the registration command). Safe to re-run multiple times
-# on the same day - same-day snapshots are simply overwritten.
+# Three independent retention tiers exist so that if OneDrive's sync corrupts or
+# clobbers one copy, the other tiers (written and pruned separately) give
+# separate recovery points.
+#
+# The snapshot is built once in %TEMP%, verified (file count), then copied to each
+# tier via a ".tmp" dir + rename, so a failed copy never destroys the previous
+# good snapshot. Safe to re-run: same-day/week/month snapshots are replaced.
+#
+# Runs once daily via Task Scheduler (see README.md). Exits 1 on any failure.
 
 $ErrorActionPreference = 'Stop'
 
-$Source   = Join-Path $env:USERPROFILE '.claude\projects\c--scripts\memory'
-$DestRoot = Join-Path $env:USERPROFILE 'OneDrive\Backups\claude-memory'
-$LogFile  = Join-Path $DestRoot 'backup.log'
+$ClaudeDir = Join-Path $env:USERPROFILE '.claude'
+$DestRoot  = Join-Path $env:USERPROFILE 'OneDrive\Backups\claude-memory'
+$LogFile   = Join-Path $DestRoot 'backup.log'
+$Stage     = Join-Path $env:TEMP ("claude-backup-{0}" -f [guid]::NewGuid().ToString('N'))
 
-$DailyRetentionDays   = 7    # keep last 7 daily snapshots
-$WeeklyRetentionCount = 5    # keep last 5 weekly snapshots (~5 weeks)
-$MonthlyRetentionCount = 12  # keep last 12 monthly snapshots (~1 year)
+$DailyKeep   = 7
+$WeeklyKeep  = 5
+$MonthlyKeep = 12
+$LogMaxBytes = 256KB
+
+$GlobalFiles = 'CLAUDE.md', 'settings.json', 'settings.local.json', 'statusline.js', 'keybindings.json'
+$GlobalDirs  = 'commands', 'skills'
 
 function Write-Log {
     param([string]$Message)
@@ -29,80 +42,110 @@ function Write-Log {
     Add-Content -Path $LogFile -Value $line
 }
 
-function Copy-Snapshot {
-    param(
-        [string]$TargetDir,
-        [string]$Label
-    )
-    if (Test-Path $TargetDir) {
-        Remove-Item -Path $TargetDir -Recurse -Force
-    }
-    New-Item -ItemType Directory -Path $TargetDir -Force | Out-Null
-    Copy-Item -Path (Join-Path $Source '*') -Destination $TargetDir -Recurse -Force
-    Write-Log "Wrote $Label snapshot -> $TargetDir"
+function Get-FileCount([string]$Dir) {
+    (Get-ChildItem -Path $Dir -Recurse -File -Force | Measure-Object).Count
 }
 
-function Prune-ByAge {
-    param([string]$Dir, [int]$MaxAgeDays)
-    if (-not (Test-Path $Dir)) { return }
-    Get-ChildItem -Path $Dir -Directory | Where-Object {
-        $_.LastWriteTime -lt (Get-Date).AddDays(-$MaxAgeDays)
-    } | ForEach-Object {
-        Remove-Item -Path $_.FullName -Recurse -Force
-        Write-Log "Pruned old snapshot -> $($_.FullName)"
+function Build-Stage {
+    New-Item -ItemType Directory -Path $Stage -Force | Out-Null
+
+    # Every project memory dir that actually contains files.
+    $projects = Join-Path $ClaudeDir 'projects'
+    if (Test-Path $projects) {
+        foreach ($p in Get-ChildItem -Path $projects -Directory) {
+            $mem = Join-Path $p.FullName 'memory'
+            if ((Test-Path $mem) -and (Get-FileCount $mem) -gt 0) {
+                $dest = Join-Path $Stage "projects\$($p.Name)\memory"
+                New-Item -ItemType Directory -Path $dest -Force | Out-Null
+                Copy-Item -Path (Join-Path $mem '*') -Destination $dest -Recurse -Force
+            }
+        }
     }
+
+    # Global config.
+    $global = Join-Path $Stage 'global'
+    New-Item -ItemType Directory -Path $global -Force | Out-Null
+    foreach ($f in $GlobalFiles) {
+        $src = Join-Path $ClaudeDir $f
+        if (Test-Path $src) { Copy-Item -Path $src -Destination $global -Force }
+    }
+    foreach ($d in $GlobalDirs) {
+        $src = Join-Path $ClaudeDir $d
+        if (Test-Path $src) { Copy-Item -Path $src -Destination (Join-Path $global $d) -Recurse -Force }
+    }
+
+    if ((Get-FileCount $Stage) -eq 0) { throw "Staged snapshot is empty - nothing to back up." }
+}
+
+function Publish-Snapshot {
+    param([string]$TargetDir, [string]$Label)
+    $tmp = "$TargetDir.tmp"
+    if (Test-Path $tmp) { Remove-Item -Path $tmp -Recurse -Force }
+    New-Item -ItemType Directory -Path $tmp -Force | Out-Null
+    Copy-Item -Path (Join-Path $Stage '*') -Destination $tmp -Recurse -Force
+
+    $want = Get-FileCount $Stage
+    $got  = Get-FileCount $tmp
+    if ($want -ne $got) {
+        Remove-Item -Path $tmp -Recurse -Force
+        throw "$Label verify failed: staged $want files, copied $got."
+    }
+
+    # Only now is it safe to replace the previous snapshot.
+    if (Test-Path $TargetDir) { Remove-Item -Path $TargetDir -Recurse -Force }
+    Rename-Item -Path $tmp -NewName (Split-Path $TargetDir -Leaf)
+    Write-Log "Wrote $Label snapshot ($got files) -> $TargetDir"
 }
 
 function Prune-ByCount {
     param([string]$Dir, [int]$KeepCount)
     if (-not (Test-Path $Dir)) { return }
-    $snapshots = Get-ChildItem -Path $Dir -Directory | Sort-Object Name -Descending
-    if ($snapshots.Count -gt $KeepCount) {
-        $snapshots | Select-Object -Skip $KeepCount | ForEach-Object {
+    # Names sort chronologically (yyyy-MM-dd, yyyy-Www, yyyy-MM); ignore leftover .tmp dirs.
+    Get-ChildItem -Path $Dir -Directory | Where-Object { $_.Name -notlike '*.tmp' } |
+        Sort-Object Name -Descending | Select-Object -Skip $KeepCount | ForEach-Object {
             Remove-Item -Path $_.FullName -Recurse -Force
             Write-Log "Pruned old snapshot -> $($_.FullName)"
         }
-    }
 }
 
 try {
-    if (-not (Test-Path $DestRoot)) {
-        New-Item -ItemType Directory -Path $DestRoot -Force | Out-Null
+    if (-not (Test-Path $DestRoot)) { New-Item -ItemType Directory -Path $DestRoot -Force | Out-Null }
+    if (-not (Test-Path $ClaudeDir)) { throw "Claude dir not found at $ClaudeDir" }
+
+    # Rotate the log so it doesn't grow forever (and re-sync to OneDrive every night).
+    if ((Test-Path $LogFile) -and (Get-Item $LogFile).Length -gt $LogMaxBytes) {
+        Move-Item -Path $LogFile -Destination "$LogFile.old" -Force
     }
-    if (-not (Test-Path $Source)) {
-        Write-Log "ERROR: source memory folder not found at $Source - skipping this run."
-        exit 1
-    }
+
+    Build-Stage
 
     $today = Get-Date
-
-    # --- Daily ---
-    $dailyDir = Join-Path $DestRoot 'daily'
-    $dailySnapshot = Join-Path $dailyDir $today.ToString('yyyy-MM-dd')
-    Copy-Snapshot -TargetDir $dailySnapshot -Label 'daily'
-    Prune-ByAge -Dir $dailyDir -MaxAgeDays $DailyRetentionDays
-
-    # --- Weekly (ISO-8601-style week number; ISOWeek class isn't available
-    #     under Windows PowerShell 5.1 / .NET Framework, so approximate with
-    #     Calendar.GetWeekOfYear using the FirstFourDayWeek/Monday rule) ---
     $cal = [System.Globalization.CultureInfo]::InvariantCulture.Calendar
+    # ISOWeek isn't available in Windows PowerShell 5.1; approximate with FirstFourDayWeek/Monday.
+    # Year-boundary weeks can mislabel the year (e.g. Dec 30 in W01) - use the ISO week-year.
     $isoWeek = $cal.GetWeekOfYear($today, [System.Globalization.CalendarWeekRule]::FirstFourDayWeek, [System.DayOfWeek]::Monday)
-    $weekLabel = "{0}-W{1:D2}" -f $today.Year, $isoWeek
-    $weeklyDir = Join-Path $DestRoot 'weekly'
-    $weeklySnapshot = Join-Path $weeklyDir $weekLabel
-    Copy-Snapshot -TargetDir $weeklySnapshot -Label 'weekly'
-    Prune-ByCount -Dir $weeklyDir -KeepCount $WeeklyRetentionCount
+    $weekYear = if ($isoWeek -ge 52 -and $today.Month -eq 1) { $today.Year - 1 }
+                elseif ($isoWeek -eq 1 -and $today.Month -eq 12) { $today.Year + 1 }
+                else { $today.Year }
 
-    # --- Monthly ---
-    $monthLabel = $today.ToString('yyyy-MM')
-    $monthlyDir = Join-Path $DestRoot 'monthly'
-    $monthlySnapshot = Join-Path $monthlyDir $monthLabel
-    Copy-Snapshot -TargetDir $monthlySnapshot -Label 'monthly'
-    Prune-ByCount -Dir $monthlyDir -KeepCount $MonthlyRetentionCount
+    $tiers = @(
+        @{ Name = 'daily';   Label = $today.ToString('yyyy-MM-dd');            Keep = $DailyKeep }
+        @{ Name = 'weekly';  Label = ("{0}-W{1:D2}" -f $weekYear, $isoWeek);   Keep = $WeeklyKeep }
+        @{ Name = 'monthly'; Label = $today.ToString('yyyy-MM');               Keep = $MonthlyKeep }
+    )
+    foreach ($t in $tiers) {
+        $dir = Join-Path $DestRoot $t.Name
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+        Publish-Snapshot -TargetDir (Join-Path $dir $t.Label) -Label $t.Name
+        Prune-ByCount -Dir $dir -KeepCount $t.Keep
+    }
 
     Write-Log "Backup run complete."
 }
 catch {
     Write-Log "ERROR: $($_.Exception.Message)"
     exit 1
+}
+finally {
+    if (Test-Path $Stage) { Remove-Item -Path $Stage -Recurse -Force -ErrorAction SilentlyContinue }
 }
