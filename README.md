@@ -47,6 +47,18 @@ version and points there for specifics.
 - `.git/` — this repo. Uncommitted as of 2026-09-19: `email-monitor/`, `.claude/`,
   `.playwright-mcp/`, `garmin_trends/intensity_minutes_report.py`, and this README's edits.
 
+## Git hooks (per-clone setup)
+
+The gitleaks pre-commit hook is versioned at `.githooks/pre-commit`. `core.hooksPath` is a
+per-clone setting, so on every fresh clone run once:
+
+```
+git config core.hooksPath .githooks
+```
+
+The hook runs gitleaks through WSL with `wslpath`-translated git dir/work tree (needed for linked
+worktrees) and fails closed: any gitleaks error output blocks the commit, not just a leak finding.
+
 ## Scheduled tasks (Windows Task Scheduler) → what they run
 
 | Task | Schedule | Runs |

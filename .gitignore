@@ -36,3 +36,10 @@ rollins-archive-sync/scratchpad/
 # Local ad-hoc scratch scripts (prefixed with .tmp-)
 .tmp-*
 *.tmp
+
+# Locally authored Garmin report, not committed for now
+garmin_trends/intensity_minutes_report.py
+
+# Claude Code worktrees and Playwright MCP scratch
+.claude/worktrees/
+.playwright-mcp/

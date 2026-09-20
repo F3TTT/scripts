@@ -1,0 +1,25 @@
+#!/bin/bash
+# Route gitleaks through WSL so this hook works from Git Bash on Windows too.
+# On WSL, wsl.exe isn't in PATH — fall back to direct gitleaks.
+# Enable per clone: git config core.hooksPath .githooks
+out=$(mktemp)
+trap 'rm -f "$out"' EXIT
+if command -v wsl.exe >/dev/null 2>&1; then
+  # Linked worktrees have a .git *file* pointing at a Windows path (C:/...) that WSL git can't
+  # resolve, so gitleaks scanned nothing and still exited 0. Hand WSL translated paths explicitly.
+  gd=$(MSYS_NO_PATHCONV=1 wsl.exe -- wslpath -u "$(git rev-parse --absolute-git-dir)" | tr -d '\r')
+  wt=$(MSYS_NO_PATHCONV=1 wsl.exe -- wslpath -u "$(git rev-parse --show-toplevel)" | tr -d '\r')
+  MSYS_NO_PATHCONV=1 wsl.exe -- env GIT_DIR="$gd" GIT_WORK_TREE="$wt" gitleaks git --pre-commit --staged --redact --verbose >"$out" 2>&1
+else
+  gitleaks git --pre-commit --staged --redact --verbose >"$out" 2>&1
+fi
+rc=$?
+cat "$out"
+# gitleaks exits 0 ("no leaks found") even when it can't read the repo, so fail closed on
+# any error output too.
+if [ $rc -ne 0 ] || grep -qiE '\bERR\b|\bFTL\b|fatal:|error:' "$out"; then
+  echo ""
+  echo "gitleaks: BLOCKED — leak found or gitleaks error (exit $rc)"
+  echo "  If false positive: add rule to .gitleaks.toml or use inline 'gitleaks:allow'"
+  exit 1
+fi

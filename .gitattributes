@@ -1,0 +1,2 @@
+# Hooks run under bash; CRLF breaks the shebang
+.githooks/* text eol=lf
