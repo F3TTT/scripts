@@ -29,7 +29,7 @@ version and points there for specifics.
 
 | Folder | What it does | Details |
 |---|---|---|
-| `garmin_trends/` | Pulls Garmin Connect data (via WSL venv + `garminconnect` lib) into weekly trend/insights reports. `garmin_client.py` (auth/session), `pull_report.py` (main trend report), `activity_log.py` (recent activities), `intensity_minutes_report.py` (yearly weekly intensity-minutes aggregate). | [[reference_garmin_trends_tool]] |
+| `garmin_trends/` | Pulls Garmin Connect data (via WSL venv + `garminconnect` lib) into weekly trend/insights reports (now including a body-weight section). `garmin_client.py` (auth/session), `pull_report.py` (main trend report), `activity_log.py` (recent activities), `weight_log.py` (body-weight trend from the weigh-in cache that `pull_report.py` fills; shown in lb), `intensity_minutes_report.py` (yearly weekly intensity-minutes aggregate). | [[reference_garmin_trends_tool]] |
 | `morning-briefing/` | `briefing.py` — daily audio briefing generated fresh each morning (WSL). | — |
 | `book-awards-briefing/` | `book_awards_briefing.py` — monthly audio briefing on newly-announced book awards (WSL). Scheduled via `book-awards-monthly-task.xml`. | `README.md` (see its claude.exe path gotcha) |
 | `ruck-events-briefing/` | `ruck_events_briefing.py` — weekly audio briefing on upcoming local ruck events (WSL). | — |

@@ -1,10 +1,12 @@
 """Pull Garmin Connect data and print a trend/insights report.
 
 Usage:
-    venv/bin/python pull_report.py [--days 84] [--refresh]
+    venv/bin/python pull_report.py [--days 84] [--weight-days 365] [--refresh]
 
 Data is cached per-day under data/daily/ so re-runs only hit the API for
 new days (today's record is always refetched since it's still accumulating).
+Weigh-ins use a longer window (--weight-days) and are cached in data/weight.json;
+weight_log.py reads that cache without logging in.
 """
 import argparse
 import json
@@ -14,6 +16,7 @@ from pathlib import Path
 from statistics import mean
 
 from garmin_client import get_client
+from weight_log import WEIGHT_CACHE, print_weight_summary
 
 BASE_DIR = Path(__file__).resolve().parent
 CACHE_DIR = BASE_DIR / "data" / "daily"
@@ -83,6 +86,13 @@ def fetch_bulk(client, start: date, end: date) -> dict:
     }
     BULK_CACHE.write_text(json.dumps(bulk, default=str))
     return bulk
+
+
+def fetch_weight(client, start: date, end: date) -> dict:
+    weigh_ins = safe_call(client.get_weigh_ins, start.isoformat(), end.isoformat())
+    if "error" not in weigh_ins:
+        WEIGHT_CACHE.write_text(json.dumps(weigh_ins, default=str))
+    return weigh_ins
 
 
 # ---- extraction helpers (Garmin's JSON shape varies a bit by device/account) ----
@@ -222,6 +232,7 @@ def summarize_activities(activities: list[dict], today: date):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--days", type=int, default=84, help="Lookback window in days (default 84 = 12 weeks)")
+    parser.add_argument("--weight-days", type=int, default=365, help="Lookback window for weigh-ins (default 365)")
     parser.add_argument("--refresh", action="store_true", help="Ignore cache and refetch every day")
     args = parser.parse_args()
 
@@ -234,6 +245,7 @@ def main():
 
     days = fetch_range(client, start, today, args.refresh)
     bulk = fetch_bulk(client, start, today)
+    weigh_ins = fetch_weight(client, today - timedelta(days=args.weight_days), today)
 
     print()
     print("=" * 60)
@@ -254,6 +266,12 @@ def main():
 
     print("\n[Fitness]")
     trend_line("VO2max (est.)", build_weekly_series(days, extract_vo2max, today), "", higher_is_better=True)
+
+    print("\n[Body weight]")
+    if "error" in weigh_ins:
+        print(f"  Weigh-in data unavailable: {weigh_ins['error']}")
+    else:
+        print_weight_summary(weigh_ins)
 
     print()
     print("Raw daily JSON cached under data/daily/*.json if any of the above")
