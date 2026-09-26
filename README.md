@@ -37,6 +37,7 @@ version and points there for specifics.
 | `claude-memory-backup/` | `backup-memory.ps1` — backs up all projects' Claude Code memory plus global config (CLAUDE.md, settings, skills, commands; never credentials) — which live outside OneDrive's sync root — to OneDrive on a schedule, with daily/weekly/monthly tiers and verified atomic swaps. | Has its own `README.md`. |
 | `email-monitor/` | Read-only incremental scanner for new mail synchronized into Thunderbird through Proton Bridge. It emits JSON for recurring Codex classification and keeps only offsets and Message-IDs as state. | Has its own `README.md`. |
 | `actual-budget/` | `backup-actual-budget.ps1` — nightly zip of the local Actual Budget data dir into `OneDrive\Desktop\Financial\Actual Budget\backups\` (90-day retention). Task `ActualBudgetBackup`, 2:00 AM. | `README.md` |
+| `yt-local/` | `yt-local-sync.ps1` — native Windows/PowerShell 7 yt-dlp pull of YouTube channels to `C:\Media\YouTube\<slug>` on the laptop at highest quality (MKV). New uploads + 1 backfill video/channel/day, same pace as `yt-backfill.sh`. Channels in `channels.conf` (Molly Long). | `SETUP.md` (deps, task registration) |
 | `workboard/` | Empty as of 2026-09-19 (created 2026-09-13). Purpose not recorded — ask before assuming. | — |
 
 ## Housekeeping folders (not projects)
@@ -67,6 +68,7 @@ worktrees) and fails closed: any gitleaks error output blocks the commit, not ju
 | `ruck-events-daily` | daily 6:00 PM | `ruck-events-briefing/ruck_events_briefing.py` |
 | `rollins-sync-daily` / `iggy-backfill-daily` | daily 4:00 / 2:00 AM | `rollins-archive-sync/sync.py` / `iggy-backfill.py` |
 | `yt-sync-daily` / `yt-sync-backfill-hourly` | daily 6:00 AM / periodic | `yt-sync.sh` / `yt-backfill.sh` |
+| `yt-local-daily` | daily 8:00 AM (+0-30 min random, StartWhenAvailable) | `yt-local/yt-local-sync.ps1` (pwsh) |
 | `ActualBudgetBackup` | daily 2:00 AM | `actual-budget/backup-actual-budget.ps1` |
 | `ClaudeMemoryBackup` | daily 8:40 PM | `claude-memory-backup/backup-memory.ps1` |
 | `Personal Email Monitor Intake` | every 15 min | `email-monitor/run-scan.ps1` |
