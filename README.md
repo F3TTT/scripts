@@ -35,7 +35,7 @@ version and points there for specifics.
 | `ruck-events-briefing/` | `ruck_events_briefing.py` — weekly audio briefing on upcoming local ruck events (WSL). | — |
 | `rollins-archive-sync/` | Full pipeline syncing Henry Rollins's *Harmony In My Head* and Iggy Pop's *Iggy Confidential* into a self-hosted Audiobookshelf instance with ad/station-ID/promo chapter markers. `sync.py`, `iggy-backfill.py`, plus a `stinger-analysis/` subfolder. | Has its own `README.md` — read that first for this one, it's substantially more involved than a one-liner covers. |
 | `claude-memory-backup/` | `backup-memory.ps1` — backs up all projects' Claude Code memory plus global config (CLAUDE.md, settings, skills, commands; never credentials) — which live outside OneDrive's sync root — to OneDrive on a schedule, with daily/weekly/monthly tiers and verified atomic swaps. | Has its own `README.md`. |
-| `email-monitor/` | Read-only incremental scanner for new mail synchronized into Thunderbird through Proton Bridge. It emits JSON for recurring Codex classification and keeps only offsets and Message-IDs as state. | Has its own `README.md`. |
+| `email-monitor/` | **Retired 2026-09-29** (backend removed, wasn't working well; task disabled, folder kept uncommitted in case it's revived). Read-only incremental scanner for new mail synchronized into Thunderbird through Proton Bridge. It emits JSON for recurring Codex classification and keeps only offsets and Message-IDs as state. | Has its own `README.md`. |
 | `actual-budget/` | `backup-actual-budget.ps1` — nightly zip of the local Actual Budget data dir into `OneDrive\Desktop\Financial\Actual Budget\backups\` (90-day retention). Task `ActualBudgetBackup`, 2:00 AM. | `README.md` |
 | `yt-local/` | `yt-local-sync.ps1` — native Windows/PowerShell 7 yt-dlp pull of YouTube channels to `C:\Media\YouTube\<slug>` on the laptop at highest quality (MKV). New uploads + 1 backfill video/channel/day, same pace as `yt-backfill.sh`. Channels in `channels.conf` (Molly Long). | `SETUP.md` (deps, task registration) |
 | `workboard/` | Empty as of 2026-09-19 (created 2026-09-13). Purpose not recorded — ask before assuming. | — |
@@ -68,10 +68,10 @@ worktrees) and fails closed: any gitleaks error output blocks the commit, not ju
 | `ruck-events-daily` | daily 6:00 PM | `ruck-events-briefing/ruck_events_briefing.py` |
 | `rollins-sync-daily` / `iggy-backfill-daily` | daily 4:00 / 2:00 AM | `rollins-archive-sync/sync.py` / `iggy-backfill.py` |
 | `yt-sync-daily` / `yt-sync-backfill-hourly` | daily 6:00 AM / periodic | `yt-sync.sh` / `yt-backfill.sh` |
-| `yt-local-daily` | daily 8:00 AM (+0-30 min random, StartWhenAvailable) | `yt-local/yt-local-sync.ps1` (pwsh) |
+| `yt-local-daily` | daily 8:00 AM (+0-30 min random, StartWhenAvailable) | `yt-local/yt-local-sync.ps1` (pwsh via `conhost.exe --headless`). No active channels on this laptop since 2026-09-29; runs only for the weekly yt-dlp upgrade. |
 | `ActualBudgetBackup` | daily 2:00 AM | `actual-budget/backup-actual-budget.ps1` |
-| `ClaudeMemoryBackup` | daily 8:40 PM | `claude-memory-backup/backup-memory.ps1` |
-| `Personal Email Monitor Intake` | every 15 min | `email-monitor/run-scan.ps1` |
+| `ClaudeMemoryBackup` | daily 8:40 PM | `claude-memory-backup/backup-memory.ps1` (via `conhost.exe --headless`, no window) |
+| `Personal Email Monitor Intake` | **DISABLED 2026-09-29** (was every 15 min) | `email-monitor/run-scan.ps1` |
 
 Last-run status: check with `Get-ScheduledTask | Get-ScheduledTaskInfo` (nonzero `LastTaskResult`
 = failed). As of 2026-09-19, `book-awards-monthly` (path bug: claude.exe wrote to `C:\home`) and
