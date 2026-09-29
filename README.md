@@ -72,7 +72,7 @@ worktrees) and fails closed: any gitleaks error output blocks the commit, not ju
 | `yt-local-daily` | daily 8:00 AM (+0-30 min random, StartWhenAvailable) | `yt-local/yt-local-sync.ps1` (pwsh via `conhost.exe --headless`). No active channels on this laptop since 2026-09-29; runs only for the weekly yt-dlp upgrade. |
 | `ActualBudgetBackup` | daily 2:00 AM | `actual-budget/backup-actual-budget.ps1` |
 | `ClaudeMemoryBackup` | daily 8:40 PM | `claude-memory-backup/backup-memory.ps1` (via `conhost.exe --headless`, no window) |
-| `spotify-watch-weekly` | Sundays 12:00 PM (StartWhenAvailable) | `spotify-watch/spotify-watch.ps1` (pwsh via `conhost.exe --headless`) — not registered until the user finishes setup |
+| `spotify-watch-weekly` | Sundays 12:00 PM (StartWhenAvailable) | `spotify-watch/spotify-watch.ps1` (pwsh via `conhost.exe --headless`) — registered 2026-09-29 |
 | `Personal Email Monitor Intake` | **DISABLED 2026-09-29** (was every 15 min) | `email-monitor/run-scan.ps1` |
 
 Last-run status: check with `Get-ScheduledTask | Get-ScheduledTaskInfo` (nonzero `LastTaskResult`
