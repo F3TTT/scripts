@@ -1,2 +1,4 @@
 # Hooks run under bash; CRLF breaks the shebang
 .githooks/* text eol=lf
+# Piped straight into the NAS shell via ssh sh -s; CRLF breaks it
+nas_health.sh text eol=lf
