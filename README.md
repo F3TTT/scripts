@@ -38,6 +38,7 @@ version and points there for specifics.
 | `email-monitor/` | **Retired 2026-09-29** (backend removed, wasn't working well; task disabled, folder kept uncommitted in case it's revived). Read-only incremental scanner for new mail synchronized into Thunderbird through Proton Bridge. It emits JSON for recurring Codex classification and keeps only offsets and Message-IDs as state. | Has its own `README.md`. |
 | `actual-budget/` | `backup-actual-budget.ps1` — nightly zip of the local Actual Budget data dir into `OneDrive\Desktop\Financial\Actual Budget\backups\` (90-day retention). Task `ActualBudgetBackup`, 2:00 AM. | `README.md` |
 | `yt-local/` | `yt-local-sync.ps1` — native Windows/PowerShell 7 yt-dlp pull of YouTube channels to `C:\Media\YouTube\<slug>` on the laptop at highest quality (MKV). New uploads + 1 backfill video/channel/day, same pace as `yt-backfill.sh`. Channels in `channels.conf` (Molly Long). | `SETUP.md` (deps, task registration) |
+| `spotify-watch/` | `spotify-watch.ps1` — weekly CSV snapshot of the user's Spotify playlists to `OneDrive\Desktop\Entertainment\Music\spotify-snapshots\`, diffed week over week; emails (Proton Bridge) when songs grey out or leave a playlist, or if Spotify blocks API export. Created 2026-09-29. | `README.md` (one-time Spotify developer app setup) |
 | `workboard/` | Empty as of 2026-09-19 (created 2026-09-13). Purpose not recorded — ask before assuming. | — |
 
 ## Housekeeping folders (not projects)
@@ -71,6 +72,7 @@ worktrees) and fails closed: any gitleaks error output blocks the commit, not ju
 | `yt-local-daily` | daily 8:00 AM (+0-30 min random, StartWhenAvailable) | `yt-local/yt-local-sync.ps1` (pwsh via `conhost.exe --headless`). No active channels on this laptop since 2026-09-29; runs only for the weekly yt-dlp upgrade. |
 | `ActualBudgetBackup` | daily 2:00 AM | `actual-budget/backup-actual-budget.ps1` |
 | `ClaudeMemoryBackup` | daily 8:40 PM | `claude-memory-backup/backup-memory.ps1` (via `conhost.exe --headless`, no window) |
+| `spotify-watch-weekly` | Sundays 12:00 PM (StartWhenAvailable) | `spotify-watch/spotify-watch.ps1` (pwsh via `conhost.exe --headless`) — not registered until the user finishes setup |
 | `Personal Email Monitor Intake` | **DISABLED 2026-09-29** (was every 15 min) | `email-monitor/run-scan.ps1` |
 
 Last-run status: check with `Get-ScheduledTask | Get-ScheduledTaskInfo` (nonzero `LastTaskResult`
