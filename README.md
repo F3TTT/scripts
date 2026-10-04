@@ -1,4 +1,9 @@
 # scripts
+branch `fix-book-awards-iggy` and take effect once merged into `C:\scripts`.
+`iggy-backfill-daily` (stale `~/.rollins-sync/sync.py` path) had both exited 1; the fixes are on
+| `bluesky-follower-activity/` | `follower_activity.py` — one-off-but-rerunnable analysis: for a Bluesky account, counts what its followers did (posts, replies, likes) over the last 30 days, bucketed by ET hour. Public APIs only, no auth. Used 2026-10-04 to set kaizengrey.com posting slots (noon / 7:30pm ET). Re-run as the follower count grows. |
+branch `fix-book-awards-iggy` and take effect once merged into `C:\scripts`.
+# scripts
 
 **Last verified: 2026-09-19.** Upkeep rule: if this date is more than 7 days old, or `ls C:\scripts`
 shows a file/folder not listed below, re-scan and update this file and the date before relying on
