@@ -8,7 +8,7 @@
     22:30:07; the machine came back at 22:30:28). This script finds every session transcript whose
     last write falls in the window just before the last boot, reads each one's working directory
     and title, and opens a Windows Terminal tab per session running `claude --resume <id>` in the
-    right folder.
+    right folder. Claude sets each tab's title (and its working/done status) itself.
 
     A session that has already been resumed is written to after boot, so it falls out of the window.
     Re-running the script only reopens what is still missing.
@@ -21,6 +21,9 @@
     Use this time instead of the last boot as the cutoff, e.g. after a crash where Windows Terminal
     died but the machine did not reboot.
 
+.PARAMETER Id
+    Reopen these session IDs instead of searching by time.
+
 .PARAMETER List
     Only print the sessions that would be reopened; do not open any tabs.
 
@@ -32,6 +35,7 @@
 param(
     [int]$WindowMinutes = 5,
     [datetime]$Before,
+    [string[]]$Id,
     [switch]$List
 )
 
@@ -42,7 +46,10 @@ $from = $boot.AddMinutes(-$WindowMinutes)
 # Session transcripts sit directly under each project folder; subagent transcripts are nested deeper
 # (<session>\subagents\*.jsonl) and are not resumable sessions.
 $files = Get-ChildItem -Path (Join-Path $projectsDir '*\*.jsonl') -File |
-    Where-Object { $_.LastWriteTime -ge $from -and $_.LastWriteTime -le $boot } |
+    Where-Object {
+        if ($Id) { $_.BaseName -in $Id }
+        else { $_.LastWriteTime -ge $from -and $_.LastWriteTime -le $boot }
+    } |
     Sort-Object LastWriteTime
 
 if (-not $files) {
@@ -74,16 +81,15 @@ $sessions = foreach ($f in $files) {
     }
 }
 
-Write-Host "Cutoff: $boot. Sessions last written in the $WindowMinutes min before it:"
+if ($Id) { Write-Host "Sessions to reopen:" }
+else { Write-Host "Cutoff: $boot. Sessions last written in the $WindowMinutes min before it:" }
 $sessions | Format-Table Title, Dir, Id -AutoSize | Out-String -Width 250 | Write-Host
 
 if ($List) { return }
 
+# No --title: Claude Code sets the tab title itself and updates it with its working/done status,
+# and a fixed or suppressed title would freeze that.
 $tabs = foreach ($s in $sessions) {
-    # wt treats ';' as a command separator and '"' would break the quoting, so strip both from the
-    # tab title and keep it short enough to read on a tab.
-    $tabTitle = ($s.Title -replace '[;"]', '').Trim()
-    if ($tabTitle.Length -gt 30) { $tabTitle = $tabTitle.Substring(0, 29) + '…' }
-    "new-tab --title `"$tabTitle`" --suppressApplicationTitle -d `"$($s.Dir)`" pwsh -NoExit -Command claude --resume $($s.Id)"
+    "new-tab -d `"$($s.Dir)`" pwsh -NoExit -Command claude --resume $($s.Id)"
 }
 Start-Process wt -ArgumentList ($tabs -join ' ; ')
