@@ -1,11 +1,6 @@
 # scripts
-branch `fix-book-awards-iggy` and take effect once merged into `C:\scripts`.
-`iggy-backfill-daily` (stale `~/.rollins-sync/sync.py` path) had both exited 1; the fixes are on
-| `bluesky-follower-activity/` | `follower_activity.py` — one-off-but-rerunnable analysis: for a Bluesky account, counts what its followers did (posts, replies, likes) over the last 30 days, bucketed by ET hour. Public APIs only, no auth. Used 2026-10-04 to set kaizengrey.com posting slots (noon / 7:30pm ET). Re-run as the follower count grows. |
-branch `fix-book-awards-iggy` and take effect once merged into `C:\scripts`.
-# scripts
 
-**Last verified: 2026-09-19.** Upkeep rule: if this date is more than 7 days old, or `ls C:\scripts`
+**Last verified: 2026-10-06.** Upkeep rule: if this date is more than 7 days old, or `ls C:\scripts`
 shows a file/folder not listed below, re-scan and update this file and the date before relying on
 it. Update it in the same session whenever a script or project is added or removed.
 
@@ -30,6 +25,7 @@ version and points there for specifics.
 | `copyNasGranular.ps1` | Per-file copy from Source→Destination with SHA-256 verify and move-to-Processed on success. Paths via CLI params or `~/.copynas/config.json` (CLI wins). Consolidated from six dated one-off variants that used to live in this folder. |
 | `rollins-sync.py` | Daily poll of the rollins-archive.com RSS feed. See `rollins-archive-sync/` below for the fuller pipeline this feeds into. |
 | `yt-sync.sh` | Downloads new videos from monitored YouTube channels in WSL, rsyncs to the seedbox, removes local copies. Config: `~/yt-sync/channels.conf`. |
+| `restore-claude-sessions.ps1` | After a reboot (e.g. a Windows update), reopens every Claude Code session it killed, one Windows Terminal tab each, running `claude --resume <id>` in the session's own folder with its title on the tab. Finds them as the transcripts last written in the 5 min before boot; already-resumed ones drop out, so re-running is safe. `-List` previews, `-Before <time>` for a crash without a reboot, `-WindowMinutes` to widen. |
 | `yt-backfill.sh` | Companion to `yt-sync.sh` — grabs one older video per channel per hourly run, walking backwards through each playlist, paced to look like normal human viewing rather than a scrape. |
 
 ## Subdirectory projects
@@ -46,14 +42,16 @@ version and points there for specifics.
 | `actual-budget/` | `backup-actual-budget.ps1` — nightly zip of the local Actual Budget data dir into `OneDrive\Desktop\Financial\Actual Budget\backups\` (90-day retention). Task `ActualBudgetBackup`, 2:00 AM. | `README.md` |
 | `yt-local/` | `yt-local-sync.ps1` — native Windows/PowerShell 7 yt-dlp pull of YouTube channels to `C:\Media\YouTube\<slug>` on the laptop at highest quality (MKV). New uploads + 1 backfill video/channel/day, same pace as `yt-backfill.sh`. Channels in `channels.conf` (Molly Long). | `SETUP.md` (deps, task registration) |
 | `spotify-watch/` | `spotify-watch.ps1` — weekly CSV snapshot of the user's Spotify playlists to `OneDrive\Desktop\Entertainment\Music\spotify-snapshots\`, diffed week over week; emails (Proton Bridge) when songs grey out or leave a playlist, or if Spotify blocks API export. Created 2026-09-29. | `README.md` (one-time Spotify developer app setup) |
+| `bluesky-follower-activity/` | `follower_activity.py` — one-off-but-rerunnable analysis: for a Bluesky account, counts what its followers did (posts, replies, likes) over the last 30 days, bucketed by ET hour. Public APIs only, no auth. Used 2026-10-04 to set kaizengrey.com posting slots (noon / 7:30pm ET). Re-run as the follower count grows. | — |
 | `workboard/` | Empty as of 2026-09-19 (created 2026-09-13). Purpose not recorded — ask before assuming. | — |
 
 ## Housekeeping folders (not projects)
 
 - `.claude/` — Claude Code settings for this directory.
 - `.playwright-mcp/` — Playwright MCP scratch output; safe to ignore.
-- `.git/` — this repo. Uncommitted as of 2026-09-19: `email-monitor/`, `.claude/`,
-  `.playwright-mcp/`, `garmin_trends/intensity_minutes_report.py`, and this README's edits.
+- `.git/` — this repo. Uncommitted as of 2026-10-06: `email-monitor/`, `.claude/`.
+  `.claude/worktrees/` holds per-session git worktrees; as of 2026-10-06 `ebay-watch` and
+  `thunderbird-orders` are unmerged branches.
 
 ## Git hooks (per-clone setup)
 
@@ -83,6 +81,5 @@ worktrees) and fails closed: any gitleaks error output blocks the commit, not ju
 | `Personal Email Monitor Intake` | **DISABLED 2026-09-29** (was every 15 min) | `email-monitor/run-scan.ps1` |
 
 Last-run status: check with `Get-ScheduledTask | Get-ScheduledTaskInfo` (nonzero `LastTaskResult`
-= failed). As of 2026-09-19, `book-awards-monthly` (path bug: claude.exe wrote to `C:\home`) and
-`iggy-backfill-daily` (stale `~/.rollins-sync/sync.py` path) had both exited 1; the fixes are on
-branch `fix-book-awards-iggy` and take effect once merged into `C:\scripts`.
+= failed). The 2026-09-19 failures of `book-awards-monthly` and `iggy-backfill-daily` were fixed
+and merged; both exited 0 on their latest runs (checked 2026-10-06).
