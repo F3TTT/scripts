@@ -46,6 +46,31 @@ C25K = {
 }
 FINAL_WEEK = 9
 
+# Goal race. Its week: the Saturday run becomes a short shakeout and Sunday is
+# race day (nothing pushed to the watch; record it as a Run).
+RACE = {
+    "date": dt.date(2026, 12, 20),
+    "name": "Run Santa Run Miami 5K",
+    "start": "08:00",
+    "where": "Indian Beach Park, 4601 Collins Ave, Miami Beach (one listing says 7275 Collins; confirm)",
+    "url": "https://run-santa-run.com",
+}
+RACE_BLOCK_START = "07:00"   # arrive an hour early
+RACE_BLOCK_MIN = 150         # through ~09:30: race, cool-down, back home
+SHAKEOUT_MAIN = _rep(3, ("run", 60), ("walk", 60))
+
+
+def shakeout_workout():
+    steps = [_step(1, "warmup", WARMUP_S, "Brisk walk")]
+    for kind, secs in SHAKEOUT_MAIN:
+        if kind == R:
+            steps.append(_step(len(steps) + 1, "interval", secs, "Easy run", RUN_HR))
+        else:
+            steps.append(_step(len(steps) + 1, "recovery", secs, "Walk"))
+    steps.append(_step(len(steps) + 1, "cooldown", COOLDOWN_S, "Walk"))
+    return _workout("Shakeout 16", "running", steps,
+                    "Day before the race: 3x (1:00 easy run / 1:00 walk). Stay relaxed, low in the range.")
+
 
 def c25k_main(week, day):
     """Main set for C25K week 1-9, run day 1-3."""
@@ -228,13 +253,39 @@ def week_days(monday, c25k_week):
                 "desc": (f"Pick one: 'Z2 Bike {Z2_MIN}' ({BIKE_HR[0]}-{BIKE_HR[1]} bpm) or "
                          f"'Z2 Walk {Z2_MIN}' ({WALK_HR[0]}-{WALK_HR[1]} bpm). Both are on the Fenix today."),
             })
+    race = RACE["date"]
+    if monday <= race < monday + dt.timedelta(days=7):
+        for d in days:
+            if d["date"] == race - dt.timedelta(days=1) and d["workouts"][0][0] == "c25k":
+                d.update({
+                    "workouts": [("shakeout",)], "minutes": 16,
+                    "summary": "Run: shakeout before race (16 min)",
+                    "desc": ("Day before the race, so no C25K run today: 5 min brisk walk, "
+                             "3x (1:00 easy run / 1:00 walk), 5 min walk.\n"
+                             f"On the Fenix as 'Shakeout 16'. Keep it easy, low in {RUN_HR[0]}-{RUN_HR[1]} bpm.\n"
+                             "Lay out kit and bib tonight."),
+                })
+            if d["date"] == race:
+                d.update({
+                    "workouts": [], "minutes": 0, "start": RACE_BLOCK_START, "block_minutes": RACE_BLOCK_MIN,
+                    "summary": f"RACE: {RACE['name']} ({RACE['start']} start)",
+                    "desc": (f"{RACE['name']}, start {RACE['start']} (confirm). {RACE['where']}.\n"
+                             f"{RACE['url']}\n\n"
+                             "Plan: start with the C25K rhythm, run easy at 128-144 bpm and walk when "
+                             "you need to; finishing with walk breaks is fine. Record it on the Fenix "
+                             "as a Run (it counts as this week's third run).\n"
+                             "Arrive an hour early for bib pickup and a 5-10 min walking warm-up."),
+                })
     for d in days:
-        d["block_minutes"] = CHANGE_MIN + d["minutes"] + SHOWER_MIN
-        d["desc"] += f"\n\nBlock includes {CHANGE_MIN} min to change before and {SHOWER_MIN} min to shower after."
+        if "block_minutes" not in d:
+            d["block_minutes"] = CHANGE_MIN + d["minutes"] + SHOWER_MIN
+            d["desc"] += f"\n\nBlock includes {CHANGE_MIN} min to change before and {SHOWER_MIN} min to shower after."
     return days
 
 
 def build_workout(spec):
+    if spec[0] == "shakeout":
+        return shakeout_workout()
     if spec[0] == "c25k":
         return c25k_workout(spec[1], spec[2])
     return z2_workout(spec[1])

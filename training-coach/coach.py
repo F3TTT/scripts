@@ -183,11 +183,11 @@ def cmd_plan_week(a):
     print(f"Week of {key}: C25K week {week} ({note})")
     for d in days:
         names = ", ".join(program.build_workout(s)["workoutName"] for s in d["workouts"])
-        print(f"  {d['date']:%a %m-%d}  {program.BLOCK_TIME} {d['block_minutes']:>3} min  {d['summary']:<42} watch: {names}")
+        print(f"  {d['date']:%a %m-%d}  {d.get('start', program.BLOCK_TIME)} {d['block_minutes']:>3} min  {d['summary']:<42} watch: {names}")
     if a.dry_run:
         ensure_workouts(state, specs, dry_run=True)
-        if week == program.FINAL_WEEK:
-            print(f"  + end-of-plan reminder {monday + dt.timedelta(days=6)} {REMINDER_TIME}")
+        if program.RACE and not state.get("end_reminder"):
+            print(f"  + end-of-plan reminder {program.RACE['date']} {REMINDER_TIME}")
         return
 
     old = planned.get(key, {})
@@ -226,7 +226,7 @@ def cmd_plan_week(a):
             invite("update", "--uid", uid, "--summary", d["summary"], "--desc", d["desc"])
         else:
             invites[date] = invite("new", "--summary", d["summary"],
-                                   "--start", f"{date} {program.BLOCK_TIME}",
+                                   "--start", f"{date} {d.get('start', program.BLOCK_TIME)}",
                                    "--minutes", str(d["block_minutes"]), "--desc", d["desc"])
         sent[date] = h
         count += 1
@@ -238,16 +238,23 @@ def cmd_plan_week(a):
 
 
 def end_reminder(state, monday, week, record):
-    """Book (or move) 'plan the next block' for the Sunday that ends the first week-9 week."""
-    if week != program.FINAL_WEEK:
-        return
+    """Book 'plan the next block' for the evening of race day, or, without a race, for the
+    Sunday that ends the first week-9 week (moved if week 9 repeats)."""
     rem = state.get("end_reminder")
-    if record and record["outcome"].startswith("complete"):
-        return  # week 9 already done; the reminder stays where it fired
-    sunday = (monday + dt.timedelta(days=6)).isoformat()
+    if program.RACE:
+        sunday = program.RACE["date"].isoformat()
+        if rem and rem["date"] == sunday:
+            return
+    else:
+        if week != program.FINAL_WEEK:
+            return
+        if record and record["outcome"].startswith("complete"):
+            return  # week 9 already done; the reminder stays where it fired
+        sunday = (monday + dt.timedelta(days=6)).isoformat()
     hist = state.get("history", [])
     repeats = sum(1 for h in hist if h["outcome"].startswith("repeat"))
-    desc = (f"C25K week 9 ends today. Weeks planned so far: {len(state.get('planned', {}))}; "
+    lead = f"{program.RACE['name']} is done. " if program.RACE else "C25K week 9 ends today. "
+    desc = (f"{lead}Weeks planned so far: {len(state.get('planned', {}))}; "
             f"repeated weeks: {repeats}.\nOpen Claude in Desktop\\Training and plan the next block "
             "(this is where sleep/readiness rules were deferred to).")
     if rem:

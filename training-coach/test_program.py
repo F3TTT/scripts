@@ -46,6 +46,19 @@ class ProgramTests(unittest.TestCase):
         self.assertEqual(days[6]["workouts"], [("z2", "cycling"), ("z2", "walking")])
         self.assertTrue(all("ledger" not in d["desc"].lower() for d in days))
 
+    def test_race_week(self):
+        days = program.week_days(dt.date(2026, 12, 14), 9)
+        sat, sun = days[5], days[6]
+        self.assertEqual(sat["workouts"], [("shakeout",)])
+        self.assertEqual(sun["workouts"], [])
+        self.assertTrue(sun["summary"].startswith("RACE: Run Santa Run"))
+        self.assertEqual((sun["start"], sun["block_minutes"]), ("07:00", 150))
+        self.assertEqual(days[1]["workouts"], [("c25k", 9, 1)])
+        self.assertEqual(program.build_workout(("shakeout",))["estimatedDurationInSecs"], 16 * 60)
+        # other weeks untouched
+        self.assertEqual(program.week_days(dt.date(2026, 12, 7), 9)[6]["workouts"],
+                         [("z2", "cycling"), ("z2", "walking")])
+
     def test_weekly_rule(self):
         self.assertEqual(program.next_week(1, 3, None)[0], 2)
         self.assertEqual(program.next_week(1, 3, 3)[0], 2)

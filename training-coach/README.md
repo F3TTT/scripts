@@ -26,8 +26,13 @@ TrainingPeaks syncs), so Garmin's own zone tables don't matter. Walking workouts
 **Weekly rule** (`program.next_week`): advance a C25K week unless a run was missed (fewer than
 3 runs of at least 75% of the scheduled length, from Garmin activities) or knee pain above 3/10
 was logged that week, which repeats it. After week 9 completes, week 9 runs continue until a
-new plan replaces this one. When week 9 is first scheduled, a "plan the next block" invite is
-booked for that Sunday 18:00 (moved if week 9 repeats).
+new plan replaces this one.
+
+**Goal race** (`program.RACE`): Run Santa Run Miami 5K, Sun 2026-12-20, 08:00. In its week the
+Saturday run becomes "Shakeout 16" and Sunday is a 07:00-09:30 race block with nothing pushed
+to the watch (recorded as a Run, it counts as the third run). With no repeated weeks, week 9 is
+Dec 7-13 and the race week is the week-9 hold. The "plan the next block" invite is booked for
+race day 18:00 (without a race it falls back to the Sunday ending the first week-9 week).
 
 ## Use
 
