@@ -124,9 +124,9 @@ LAYOUT = {
 SPORTS = {
     "running": {"sportTypeId": 1, "sportTypeKey": "running", "displayOrder": 1},
     "cycling": {"sportTypeId": 2, "sportTypeKey": "cycling", "displayOrder": 2},
-    # The workout service has no walking type (garminconnect's id 17 is dropped to
-    # "no sport"), so walks are "other" workouts: start them from the Walk activity.
-    "walking": {"sportTypeId": 3, "sportTypeKey": "other", "displayOrder": 13},
+    # Walking is id 12, though /workout/types doesn't list it; garminconnect's
+    # id 17 is silently stored as "no sport".
+    "walking": {"sportTypeId": 12, "sportTypeKey": "walking", "displayOrder": 11},
 }
 STEP_TYPES = {"warmup": 1, "cooldown": 2, "interval": 3, "recovery": 4}
 NO_TARGET = {"workoutTargetTypeId": 1, "workoutTargetTypeKey": "no.target", "displayOrder": 1}
@@ -226,8 +226,7 @@ def week_days(monday, c25k_week):
                 "summary": f"Z2 cardio: bike or walk ({Z2_MIN} min)",
                 "minutes": Z2_MIN,
                 "desc": (f"Pick one: 'Z2 Bike {Z2_MIN}' ({BIKE_HR[0]}-{BIKE_HR[1]} bpm) or "
-                         f"'Z2 Walk {Z2_MIN}' ({WALK_HR[0]}-{WALK_HR[1]} bpm). Both are on the Fenix today; "
-                         "start the walk one from the Walk activity."),
+                         f"'Z2 Walk {Z2_MIN}' ({WALK_HR[0]}-{WALK_HR[1]} bpm). Both are on the Fenix today."),
             })
     for d in days:
         d["block_minutes"] = CHANGE_MIN + d["minutes"] + SHOWER_MIN

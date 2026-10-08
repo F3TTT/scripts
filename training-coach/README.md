@@ -20,8 +20,8 @@ deferred to the next block after C25K. Program rules for the user:
 
 Strength is Fitbod's job (it sets the loads); the user records it on the Fenix as Strength.
 HR targets are explicit bpm ranges (`heart.rate.zone` + `targetValueOne/Two`, the same shape
-TrainingPeaks syncs), so Garmin's own zone tables don't matter. Z2 walks are saved as sport
-"other" because the workout service has no walking type; start them from the Walk activity.
+TrainingPeaks syncs), so Garmin's own zone tables don't matter. Walking workouts use sport id 12
+(the server's /workout/types list omits it, and garminconnect's id 17 is stored as "no sport").
 
 **Weekly rule** (`program.next_week`): advance a C25K week unless a run was missed (fewer than
 3 runs of at least 75% of the scheduled length, from Garmin activities) or knee pain above 3/10

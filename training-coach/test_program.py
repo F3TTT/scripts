@@ -33,7 +33,7 @@ class ProgramTests(unittest.TestCase):
         self.assertEqual(bike["estimatedDurationInSecs"], 30 * 60)
         main = bike["workoutSegments"][0]["workoutSteps"][1]
         self.assertEqual((main["targetValueOne"], main["targetValueTwo"]), (128.0, 139.0))
-        self.assertEqual(program.z2_workout("walking")["sportType"]["sportTypeKey"], "other")
+        self.assertEqual(program.z2_workout("walking")["sportType"]["sportTypeId"], 12)
 
     def test_week(self):
         days = program.week_days(dt.date(2026, 10, 12), 1)
