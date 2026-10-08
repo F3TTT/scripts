@@ -33,6 +33,7 @@ version and points there for specifics.
 | Folder | What it does | Details |
 |---|---|---|
 | `garmin_trends/` | Pulls Garmin Connect data (via WSL venv + `garminconnect` lib) into weekly trend/insights reports (now including a body-weight section). `garmin_client.py` (auth/session), `pull_report.py` (main trend report), `activity_log.py` (recent activities), `weight_log.py` (body-weight trend from the weigh-in cache that `pull_report.py` fills; shown in lb), `intensity_minutes_report.py` (yearly weekly intensity-minutes aggregate). | [[reference_garmin_trends_tool]] |
+| `training-coach/` | Schedules the C25K + Fitbod strength week (from 2026-10-12) as Garmin workouts with bpm HR targets plus 06:15 work-calendar invites; weekly rule repeats a week on a missed run or knee pain >3/10; books a "plan the next block" reminder at week 9. Windows Python CLI `coach.py`, Garmin side via `garmin_ops.py` in the garmin_trends venv. | Has its own `README.md`. |
 | `morning-briefing/` | `briefing.py` — daily audio briefing generated fresh each morning (WSL). | — |
 | `book-awards-briefing/` | `book_awards_briefing.py` — monthly audio briefing on newly-announced book awards (WSL). Scheduled via `book-awards-monthly-task.xml`. | `README.md` (see its claude.exe path gotcha) |
 | `ruck-events-briefing/` | `ruck_events_briefing.py` — weekly audio briefing on upcoming local ruck events (WSL). | — |
@@ -83,6 +84,7 @@ worktrees) and fails closed: any gitleaks error output blocks the commit, not ju
 | `ResticBackupB2` | weekly Sun 10:00 AM (runs when available if missed) | `restic-backup/backup-restic.ps1` (via `conhost.exe --headless`, no window) |
 | `spotify-watch-weekly` | Sundays 12:00 PM (StartWhenAvailable) | `spotify-watch/spotify-watch.ps1` (pwsh via `conhost.exe --headless`) — registered 2026-09-29 |
 | `calendar-counter-watch` | every 5 min (StartWhenAvailable) | `calendar-invites/run-watch.ps1` (pwsh via `conhost.exe --headless`) — registered 2026-10-06 |
+| `training-coach-weekly` | Sundays 6:00 PM (StartWhenAvailable) | `training-coach/run-coach.ps1` (pwsh via `conhost.exe --headless`) — registered 2026-10-08 |
 | `Personal Email Monitor Intake` | **DISABLED 2026-09-29** (was every 15 min) | `email-monitor/run-scan.ps1` |
 
 Last-run status: check with `Get-ScheduledTask | Get-ScheduledTaskInfo` (nonzero `LastTaskResult`
