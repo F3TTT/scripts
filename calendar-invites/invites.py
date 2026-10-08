@@ -38,7 +38,8 @@ def send(method, uid, ev, prefix):
     subject = f"{prefix}: {ev['summary']} - {describe_when(ev)}"
     body = (ev.get("description") or ev["summary"]) + f"\n\nWhen: {describe_when(ev)} ET"
     if method == "REQUEST":
-        body += "\nTo move it: Propose New Time in Outlook; it is accepted automatically."
+        body += ("\nTo move it: in Outlook choose Tentative & Propose New Time; "
+                 "the new time is accepted automatically.")
     bridge.send_calendar(method, subject, body, bridge.build_ics(method, uid, ev))
 
 

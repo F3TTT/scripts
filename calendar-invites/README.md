@@ -21,8 +21,10 @@ python invites.py list [--all]                                    # upcoming, wi
 python invites.py import-sent [--since 01-Aug-2026]               # rebuild ledger from Sent
 ```
 
-Times are US Eastern wall-clock. To move a reminder: Propose New Time in Outlook (applied within
-~5 minutes) or tell Claude, which runs `update`.
+Times are US Eastern wall-clock. To move a reminder in Outlook, use **Tentative & Propose New
+Time** (keeps the event on the calendar until the update lands) or Decline & Propose New Time;
+Outlook has no plain "propose" option. The new time is applied within ~5 minutes. Or tell
+Claude, which runs `update`.
 
 ## Files
 
