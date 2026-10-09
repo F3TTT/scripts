@@ -27,7 +27,19 @@
 .PARAMETER List
     Only print the sessions that would be reopened; do not open any tabs.
 
+.PARAMETER Save
+    Before a planned reboot: record every Claude Code session running right now (from the live
+    records in ~\.claude\sessions) to ~\.claude\restore-snapshot.json, and register a one-shot
+    HKCU RunOnce entry that runs this script with -Saved at the next logon. Use this when the reboot
+    may not be a clean one (disk encryption, firmware updates), where the last-write timing guess
+    can miss sessions.
+
+.PARAMETER Saved
+    Reopen the sessions recorded by -Save, skipping any that are already running again.
+
 .EXAMPLE
+    .\restore-claude-sessions.ps1 -Save            # right before a planned reboot
+    .\restore-claude-sessions.ps1 -Saved -List     # after it: preview (also runs on its own at logon)
     .\restore-claude-sessions.ps1 -List
     .\restore-claude-sessions.ps1
     .\restore-claude-sessions.ps1 -Before '2026-10-05 22:31' -List
@@ -36,10 +48,48 @@ param(
     [int]$WindowMinutes = 5,
     [datetime]$Before,
     [string[]]$Id,
-    [switch]$List
+    [switch]$List,
+    [switch]$Save,
+    [switch]$Saved
 )
 
 $projectsDir = Join-Path $env:USERPROFILE '.claude\projects'
+$snapshotPath = Join-Path $env:USERPROFILE '.claude\restore-snapshot.json'
+
+# Live interactive sessions, from the per-process records Claude Code keeps in ~\.claude\sessions.
+# Records can outlive their process (e.g. across a reboot), so only count ones whose PID is running.
+function Get-LiveSessions {
+    Get-ChildItem -Path (Join-Path $env:USERPROFILE '.claude\sessions\*.json') -File -ErrorAction SilentlyContinue |
+        ForEach-Object { try { Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json } catch { } } |
+        Where-Object { $_.kind -eq 'interactive' -and $_.sessionId -and (Get-Process -Id $_.pid -ErrorAction SilentlyContinue) }
+}
+
+if ($Save) {
+    $live = @(Get-LiveSessions)
+    if (-not $live) { Write-Host 'No running Claude Code sessions to save.'; return }
+    [pscustomobject]@{
+        SavedAt  = (Get-Date).ToString('o')
+        Sessions = @($live | ForEach-Object { [pscustomobject]@{ Id = $_.sessionId; Dir = $_.cwd; Name = $_.name } })
+    } | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $snapshotPath -Encoding utf8
+    $live | Format-Table @{ n = 'Name'; e = { $_.name } }, @{ n = 'Dir'; e = { $_.cwd } }, @{ n = 'Id'; e = { $_.sessionId } } -AutoSize |
+        Out-String -Width 250 | Write-Host
+    Write-Host "Saved $($live.Count) session(s) to $snapshotPath."
+
+    # RunOnce entries run once at the next logon and then delete themselves.
+    $cmd = "pwsh -NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Saved"
+    Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce' -Name 'RestoreClaudeSessions' -Value $cmd
+    Write-Host 'They will reopen on their own at the next logon (or run this script with -Saved).'
+    return
+}
+
+if ($Saved) {
+    if (-not (Test-Path -LiteralPath $snapshotPath)) { Write-Host "No snapshot at $snapshotPath; run with -Save first."; return }
+    $snap = Get-Content -LiteralPath $snapshotPath -Raw | ConvertFrom-Json
+    $running = @(Get-LiveSessions | ForEach-Object sessionId)
+    $Id = @($snap.Sessions | ForEach-Object Id | Where-Object { $_ -notin $running })
+    Write-Host "Snapshot from $($snap.SavedAt): $(@($snap.Sessions).Count) session(s), $($Id.Count) not running now."
+    if (-not $Id) { return }
+}
 $boot = if ($PSBoundParameters.ContainsKey('Before')) { $Before } else { (Get-CimInstance Win32_OperatingSystem).LastBootUpTime }
 $from = $boot.AddMinutes(-$WindowMinutes)
 
