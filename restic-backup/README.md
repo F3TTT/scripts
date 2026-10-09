@@ -1,7 +1,7 @@
 # restic-backup
 
 Weekly **client-side-encrypted** backup of the OneDrive Desktop to Backblaze B2, using restic.
-Part of the user's data-tiers plan: see `OneDrive\Desktop\Operations - Life Systems\data-tiers-and-backups.md`.
+Part of the user's data-tiers plan: see `Desktop\Operations - Life Systems\data-tiers-and-backups.md`.
 
 | File | What |
 |---|---|

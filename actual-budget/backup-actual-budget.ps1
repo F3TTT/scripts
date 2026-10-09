@@ -1,10 +1,11 @@
-# Nightly backup of Actual Budget's local data directory to OneDrive.
+# Nightly backup of Actual Budget's local data directory to the Desktop folder
+# (synced by Proton Drive; it was OneDrive until 2026-10-09).
 # Zips a timestamped snapshot rather than live-syncing the raw SQLite files,
-# since OneDrive syncing an open/actively-written DB risks corruption or
+# since a sync client syncing an open/actively-written DB risks corruption or
 # "conflicted copy" duplicates. Keeps the last 90 days of snapshots.
 
 $source = "C:\Users\ADMIN\actual-budget-data"
-$destDir = "C:\Users\ADMIN\OneDrive\Desktop\Financial\Actual Budget\backups"
+$destDir = "C:\Users\ADMIN\Desktop\Financial\Actual Budget\backups"
 $retentionDays = 90
 
 if (-not (Test-Path $source)) {

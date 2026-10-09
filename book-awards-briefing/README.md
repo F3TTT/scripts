@@ -8,7 +8,7 @@ narrates (edge-tts) and rsyncs to Audiobookshelf as the "Book-Awards" podcast. N
 - Scheduled: `book-awards-monthly`, 1st of month 6:15 AM. Definition: `book-awards-monthly-task.xml`
   (recreate with `schtasks /create /xml <path>`; not in git).
 - State: `~/.book-awards-briefing/state.json` (WSL) — which award stages are already covered.
-- Design notes: `OneDrive\Desktop\Operations - Life Systems\book-awards-briefing.md`.
+- Design notes: `Desktop\Operations - Life Systems\book-awards-briefing.md`.
 - Check `LastTaskResult` in Task Scheduler if an episode is missing.
 
 ## Gotcha: claude.exe is a Windows binary

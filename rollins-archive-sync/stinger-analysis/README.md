@@ -5,7 +5,7 @@ that the transcript-based chapter pipeline can't catch (it's a wordless sound). 
 is production-ready — they're kept to document what was tried.
 
 Full write-up, reference audio, and spectrograms live outside the repo (personal
-media notes): `OneDrive\Desktop\Entertainment\Rollins\stinger-reference\README.md`.
+media notes): `Desktop\Entertainment\Rollins\stinger-reference\README.md`.
 
 Each script takes a 44.1 kHz mono WAV of an episode and runs on the WSL laptop (never
 the seedbox — ultra.cc bans sustained CPU). Summary of approaches, all with unusable

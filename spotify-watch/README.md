@@ -2,12 +2,12 @@
 
 Weekly snapshot of the user's Spotify playlists. It is also the early warning if Spotify ever closes off
 playlist export. Context and the user's exit criteria are in
-`OneDrive\Desktop\Entertainment\spotify.md`.
+`Desktop\Entertainment\spotify.md`.
 
 Each run (`spotify-watch.ps1`):
 
 1. Saves every playlist the user owns or collaborates on, plus Liked Songs, as one CSV per playlist in
-   `OneDrive\Desktop\Entertainment\Music\spotify-snapshots\YYYY-MM-DD\`, with a `snapshot.json` for diffing.
+   `Desktop\Entertainment\Music\spotify-snapshots\YYYY-MM-DD\`, with a `snapshot.json` for diffing.
    Columns: position, name, artists, album, added_at, is_playable, is_local, isrc, duration_ms, uri.
    Snapshots are small and kept forever: they're the record of what a playlist held once songs grey out.
 2. Diffs against the previous snapshot. It emails and appends to `changes-log.md` in the same folder when

@@ -57,8 +57,8 @@ WORK = os.path.join(ROOT, "work")
 # already installed there; no need for a second copy.
 EDGE_TTS_BIN = os.path.join(HOME, ".morning-briefing", "venv", "bin", "edge-tts")
 
-BOOKS_MD = "/mnt/c/Users/ADMIN/OneDrive/Desktop/Entertainment/books.md"
-ENTERTAINMENT_DIR = "/mnt/c/Users/ADMIN/OneDrive/Desktop/Entertainment"
+BOOKS_MD = "/mnt/c/Users/ADMIN/Desktop/Entertainment/books.md"
+ENTERTAINMENT_DIR = "/mnt/c/Users/ADMIN/Desktop/Entertainment"
 
 DEFAULTS = {
     "claude_exe": "/mnt/c/Users/ADMIN/.local/bin/claude.exe",

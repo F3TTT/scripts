@@ -1,6 +1,7 @@
 #Requires -Version 7
 <#
-Weekly encrypted backup of the OneDrive Desktop to Backblaze B2 with restic.
+Weekly encrypted backup of the Desktop to Backblaze B2 with restic.
+(The Desktop moved from OneDrive\Desktop to C:\Users\ADMIN\Desktop on 2026-10-09.)
 
 - Config (secrets) lives OUTSIDE OneDrive: ~\.backup-cold\config.json
   { b2KeyId, b2ApplicationKey, bucket, resticPassword }. Never print it.
@@ -10,7 +11,7 @@ Weekly encrypted backup of the OneDrive Desktop to Backblaze B2 with restic.
 - Exits 1 and logs "ERROR:" on any failure. Log: %LOCALAPPDATA%\restic-backup\backup.log
 #>
 param(
-    [string[]]$Paths = @("C:\Users\ADMIN\OneDrive\Desktop"),
+    [string[]]$Paths = @("C:\Users\ADMIN\Desktop"),
     [string]$ConfigPath = (Join-Path $HOME ".backup-cold\config.json"),
     [switch]$NoPrune
 )

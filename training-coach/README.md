@@ -6,7 +6,7 @@ work Outlook calendar. It replaces Garmin's Daily Suggested Workouts, which shra
 
 Sleep and readiness data deliberately do **not** change workouts at this stage; that is
 deferred to the next block after C25K. Program rules for the user:
-`C:\Users\ADMIN\OneDrive\Desktop\Training\C25K_program_Oct2026.md`.
+`C:\Users\ADMIN\Desktop\Training\C25K_program_Oct2026.md`.
 
 ## The week
 

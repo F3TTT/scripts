@@ -43,7 +43,7 @@ It asks for the <b>restic password</b> → type it. You should see a list of dat
 <li>Restore the newest snapshot to a folder:
 <pre>.\restic.exe restore latest --target C:\Restored</pre>
 Or a specific date: use the ID from the <code>snapshots</code> list instead of <code>latest</code>.</li>
-<li>The files appear under <code>C:\Restored\C\Users\ADMIN\OneDrive\Desktop\</code>.</li>
+<li>The files appear under <code>C:\Restored\C\Users\ADMIN\Desktop\</code> (snapshots from before 2026-10-09: <code>C:\Restored\C\Users\ADMIN\OneDrive\Desktop\</code>).</li>
 </ol>
 
 <h2>If something is missing</h2>
