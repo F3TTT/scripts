@@ -1,7 +1,9 @@
 #Requires -Version 7
 <#
-Weekly encrypted backup of the Desktop to Backblaze B2 with restic.
-(The Desktop moved from OneDrive\Desktop to C:\Users\ADMIN\Desktop on 2026-10-09.)
+Weekly encrypted backup of the Desktop, Pictures and Videos to Backblaze B2 with restic.
+(The Desktop moved from OneDrive\Desktop to C:\Users\ADMIN\Desktop on 2026-10-09; Pictures and Videos left
+OneDrive the same night and were added here 2026-10-10. C:\Users\ADMIN\Staging is deliberately NOT included:
+it stages material for a separate compartment that must never enter this repo.)
 
 - Config (secrets) lives OUTSIDE OneDrive: ~\.backup-cold\config.json
   { b2KeyId, b2ApplicationKey, bucket, resticPassword }. Never print it.
@@ -11,7 +13,7 @@ Weekly encrypted backup of the Desktop to Backblaze B2 with restic.
 - Exits 1 and logs "ERROR:" on any failure. Log: %LOCALAPPDATA%\restic-backup\backup.log
 #>
 param(
-    [string[]]$Paths = @("C:\Users\ADMIN\Desktop"),
+    [string[]]$Paths = @("C:\Users\ADMIN\Desktop", "C:\Users\ADMIN\Pictures", "C:\Users\ADMIN\Videos"),
     [string]$ConfigPath = (Join-Path $HOME ".backup-cold\config.json"),
     [switch]$NoPrune
 )

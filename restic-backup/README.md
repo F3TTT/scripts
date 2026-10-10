@@ -1,6 +1,7 @@
 # restic-backup
 
-Weekly **client-side-encrypted** backup of the OneDrive Desktop to Backblaze B2, using restic.
+Weekly **client-side-encrypted** backup of the Desktop, Pictures and Videos (all under `C:\Users\ADMIN\`;
+never `Staging`, which holds material for a separate compartment) to Backblaze B2, using restic.
 Part of the user's data-tiers plan: see `Desktop\Operations - Life Systems\data-tiers-and-backups.md`.
 
 | File | What |
