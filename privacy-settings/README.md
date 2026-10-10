@@ -16,7 +16,13 @@ Also flags retired apps that come back (new Outlook and Copilot are auto-removed
 only reported) and any Microsoft account signed in to Windows that isn't on the allowlist.
 
 The allowlist is local only, never in the repo: `%LOCALAPPDATA%\privacy-settings\config.json`
-(`{ "allowedMicrosoftIdentities": [...] }`). Logs and any unsent alert: same folder.
+(`{ "allowedMicrosoftIdentities": [...], "statusDir": "..." }`). Logs and any unsent alert: same folder.
+
+**Per-device inventory:** every run writes `<statusDir>\<COMPUTERNAME>.md` (last checked, last
+applied/reset, result, script version, Windows build). On the main laptop `statusDir` is Proton
+`My files\Privacy\device-status`; the device list that points at these files is `Privacy\devices.md`.
+A machine in another compartment must point `statusDir` at its own compartment's storage, never
+this one, or the status files would link the two.
 
 HKLM policies need admin, so the task runs with highest privileges. Registering it (and the
 first `-Apply`) needs an elevated shell:

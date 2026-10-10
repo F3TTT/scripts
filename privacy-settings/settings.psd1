@@ -44,6 +44,8 @@
         @{ Path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\SearchSettings'; Name = 'IsMSACloudSearchEnabled'; Value = 0; Why = 'Search: no Microsoft-account cloud content' }
         @{ Path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\SearchSettings'; Name = 'IsAADCloudSearchEnabled'; Value = 0; Why = 'Search: no work/school cloud content' }
         @{ Path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\SearchSettings'; Name = 'IsDeviceSearchHistoryEnabled'; Value = 0; Why = 'Search history off' }
+        @{ Path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\SearchSettings'; Name = 'IsWebSuggestionsEnabled'; Value = 0; Why = 'Search: no suggested web searches (user turned off 2026-10-10)' }
+        @{ Path = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\SearchSettings'; Name = 'IsStoreSuggestionsEnabled'; Value = 0; Why = 'Search: no Microsoft Store suggestions (user turned off 2026-10-10)' }
         @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search'; Name = 'AllowCloudSearch'; Value = 0; Why = 'Search: no cloud content (policy)' }
         @{ Path = 'HKCU:\Software\Policies\Microsoft\Windows\Explorer'; Name = 'DisableSearchBoxSuggestions'; Value = 1; Why = 'Start search does not send queries to Bing' }
 

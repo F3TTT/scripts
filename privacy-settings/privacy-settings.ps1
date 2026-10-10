@@ -214,6 +214,47 @@ if ($blocked.Count) { $report += "NEEDS ATTENTION:"; $report += $blocked | ForEa
 if (-not $report)   { $report = @('All privacy settings as expected.') }
 $report | ForEach-Object { Log $_ }
 
+# Per-device inventory: one status file per machine in the folder named by config.json's
+# "statusDir" (none = skip). Each compartment's machines must point at their own compartment's
+# storage, never at another's.
+$statusDir = if (Test-Path $configPath) { (Get-Content $configPath -Raw | ConvertFrom-Json).statusDir }
+if ($statusDir) {
+    $statePath = Join-Path $stateDir 'state.json'
+    $state = if (Test-Path $statePath) { Get-Content $statePath -Raw | ConvertFrom-Json } else { [pscustomobject]@{ lastApplied = $null } }
+    $now = Get-Date -Format 'yyyy-MM-dd HH:mm'
+    if ($Apply -or $fixed.Count) { $state.lastApplied = $now }
+    $state | ConvertTo-Json | Set-Content $statePath
+    $mode = if ($Apply) { 'apply' } elseif ($Fix) { 'weekly check + fix' } else { 'check only' }
+    $commit = try { (git -C $PSScriptRoot rev-parse --short HEAD 2>$null) } catch { '?' }
+    $os = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+    # Windows 11 still reports "Windows 10" in ProductName; the build number tells them apart.
+    if ([int]$os.CurrentBuild -ge 22000) { $os.ProductName = $os.ProductName -replace 'Windows 10', 'Windows 11' }
+    $result = if ($blocked.Count -or $drift.Count) { 'NEEDS ATTENTION' } elseif ($fixed.Count -and -not $Apply) { 'drift found and reset' } else { 'all as expected' }
+    $lines = @(
+        "# ${env:COMPUTERNAME}: privacy settings status"
+        ''
+        'Written automatically by `C:\scripts\privacy-settings\privacy-settings.ps1` on every run; do not edit.'
+        ''
+        "| | |"
+        "|---|---|"
+        "| Last checked | $now ($mode) |"
+        "| Last applied / reset | $(if ($state.lastApplied) { $state.lastApplied } else { 'never' }) |"
+        "| Result | $result |"
+        "| Settings in baseline | $($settings.Registry.Count) registry values, $($settings.ForbiddenPackages.Count + $settings.ForbiddenPaths.Count) retired apps |"
+        "| Script version | $commit |"
+        "| Windows | $($os.ProductName) $($os.DisplayVersion), build $($os.CurrentBuild).$($os.UBR) |"
+        ''
+        '## Last run'
+        ''
+    ) + ($report | ForEach-Object { if ($_ -match '^\s+- ') { $_.Trim() } else { "**$_**" } })
+    try {
+        New-Item -ItemType Directory -Force -Path $statusDir | Out-Null
+        Set-Content -Path (Join-Path $statusDir "$env:COMPUTERNAME.md") -Value $lines -Encoding utf8
+    } catch {
+        Log "Couldn't write status file ($($_.Exception.Message))"
+    }
+}
+
 # Email only from the weekly run, and only when something was off.
 if ($Fix -and -not $Apply -and ($fixed.Count -or $blocked.Count)) {
     Send-Alert "Privacy settings: $($fixed.Count) reset, $($blocked.Count) need attention" (
