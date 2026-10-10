@@ -1,6 +1,6 @@
 # scripts
 
-**Last verified: 2026-10-06.** Upkeep rule: if this date is more than 7 days old, or `ls C:\scripts`
+**Last verified: 2026-10-10.** Upkeep rule: if this date is more than 7 days old, or `ls C:\scripts`
 shows a file/folder not listed below, re-scan and update this file and the date before relying on
 it. Update it in the same session whenever a script or project is added or removed.
 
@@ -41,6 +41,7 @@ version and points there for specifics.
 | `claude-memory-backup/` | `backup-memory.ps1` — backs up all projects' Claude Code memory plus global config (CLAUDE.md, settings, skills, commands; never credentials) — which live outside every synced folder — to Proton Drive (`My files\Backups\claude-memory`) on a schedule, with daily/weekly/monthly tiers and verified atomic swaps. | Has its own `README.md`. |
 | `email-monitor/` | **Retired 2026-09-29** (backend removed, wasn't working well; task disabled, folder kept uncommitted in case it's revived). Read-only incremental scanner for new mail synchronized into Thunderbird through Proton Bridge. It emits JSON for recurring Codex classification and keeps only offsets and Message-IDs as state. | Has its own `README.md`. |
 | `actual-budget/` | `backup-actual-budget.ps1` — nightly zip of the local Actual Budget data dir into `Desktop\Financial\Actual Budget\backups\` (90-day retention). Task `ActualBudgetBackup`, 2:00 AM. | `README.md` |
+| `privacy-settings/` | `privacy-settings.ps1` + `settings.psd1`: applies the Windows/Office privacy settings (policy keys where possible: ad ID, diagnostics Required, activity history, cloud search, recent files, tips, Copilot, Office connected experiences) and checks them weekly, re-applying drift and emailing only when something was off. Also flags retired apps that return (new Outlook, Copilot, OneDrive) and Microsoft accounts not on a local allowlist. Created 2026-10-10. | `README.md` |
 | `restic-backup/` | `backup-restic.ps1`: weekly **client-side-encrypted** restic backup of `Desktop`, `Pictures` and `Videos` (never `Staging`) to Backblaze B2 (`--force`, keep weekly 8 / monthly 12 / yearly 7, 2% data check). Secrets in `~\.backup-cold\config.json`, never in the repo. `make-recovery-kit.ps1` regenerates the printed recovery sheets into `%TEMP%`. Task `ResticBackupB2`, Sun 10:00 AM. | `README.md` |
 | `yt-local/` | `yt-local-sync.ps1` — native Windows/PowerShell 7 yt-dlp pull of YouTube channels to `C:\Media\YouTube\<slug>` on the laptop at highest quality (MKV). New uploads + 1 backfill video/channel/day, same pace as `yt-backfill.sh`. Channels in `channels.conf` (Molly Long). | `SETUP.md` (deps, task registration) |
 | `calendar-invites/` | `invites.py` — the one way Claude sends reminders to the work Outlook calendar (.ics invites from f3ttt via Proton Bridge, always `RSVP=TRUE` so Outlook offers Propose New Time); `new`/`update`/`cancel`/`list`. `counter_watch.py` auto-accepts Propose New Time counters so events move in Outlook. Ledger of every invite in `~/.calendar-invites/` (outside the repo). Created 2026-10-06. | `README.md` |
@@ -81,6 +82,7 @@ worktrees) and fails closed: any gitleaks error output blocks the commit, not ju
 | `yt-local-daily` | daily 8:00 AM (+0-30 min random, StartWhenAvailable) | `yt-local/yt-local-sync.ps1` (pwsh via `conhost.exe --headless`). No active channels on this laptop since 2026-09-29; runs only for the weekly yt-dlp upgrade. |
 | `ActualBudgetBackup` | daily 2:00 AM | `actual-budget/backup-actual-budget.ps1` |
 | `ClaudeMemoryBackup` | daily 8:40 PM | `claude-memory-backup/backup-memory.ps1` (via `conhost.exe --headless`, no window) |
+| `privacy-settings-weekly` | Sundays 11:00 AM (StartWhenAvailable, highest privileges) | `privacy-settings/privacy-settings.ps1 -Fix` (pwsh via `conhost.exe --headless`) — registered 2026-10-10 |
 | `ResticBackupB2` | weekly Sun 10:00 AM (runs when available if missed) | `restic-backup/backup-restic.ps1` (via `conhost.exe --headless`, no window) |
 | `spotify-watch-weekly` | Sundays 12:00 PM (StartWhenAvailable) | `spotify-watch/spotify-watch.ps1` (pwsh via `conhost.exe --headless`) — registered 2026-09-29 |
 | `calendar-counter-watch` | every 5 min (StartWhenAvailable) | `calendar-invites/run-watch.ps1` (pwsh via `conhost.exe --headless`) — registered 2026-10-06 |
