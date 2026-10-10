@@ -87,7 +87,7 @@
 
     # Classic installs that must stay gone (checked by path).
     ForbiddenPaths = @(
-        @{ Path = 'C:\Program Files\Microsoft OneDrive'; Why = 'OneDrive was retired 2026-10-10' }
+        @{ Path = 'C:\Program Files\Microsoft OneDrive\OneDrive.exe'; Why = 'OneDrive was retired 2026-10-10' }
         @{ Path = '%LOCALAPPDATA%\Microsoft\OneDrive\OneDrive.exe'; Why = 'OneDrive (per-user install) was retired 2026-10-10' }
     )
 }
