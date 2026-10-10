@@ -1,7 +1,7 @@
 # backup-memory.ps1
 #
-# Daily/weekly/monthly rotating backup of Claude Code state into OneDrive, so it
-# survives a laptop loss (the .claude folder sits outside OneDrive's sync root
+# Daily/weekly/monthly rotating backup of Claude Code state into Proton Drive, so it
+# survives a laptop loss (the .claude folder sits outside every synced folder
 # and is never backed up otherwise).
 #
 # What gets backed up (snapshot layout):
@@ -11,7 +11,7 @@
 # Deliberately NOT backed up: .credentials.json (secret), history/transcripts,
 # plugins\ (reinstallable), caches, file-history.
 #
-# Three independent retention tiers exist so that if OneDrive's sync corrupts or
+# Three independent retention tiers exist so that if Proton Drive's sync corrupts or
 # clobbers one copy, the other tiers (written and pruned separately) give
 # separate recovery points.
 #
@@ -24,7 +24,7 @@
 $ErrorActionPreference = 'Stop'
 
 $ClaudeDir = Join-Path $env:USERPROFILE '.claude'
-$DestRoot  = Join-Path $env:USERPROFILE 'OneDrive\Backups\claude-memory'
+$DestRoot  = Join-Path $env:USERPROFILE 'Proton Drive\f3ttt\My files\Backups\claude-memory'
 $LogFile   = Join-Path $DestRoot 'backup.log'
 $Stage     = Join-Path $env:TEMP ("claude-backup-{0}" -f [guid]::NewGuid().ToString('N'))
 
@@ -112,7 +112,7 @@ try {
     if (-not (Test-Path $DestRoot)) { New-Item -ItemType Directory -Path $DestRoot -Force | Out-Null }
     if (-not (Test-Path $ClaudeDir)) { throw "Claude dir not found at $ClaudeDir" }
 
-    # Rotate the log so it doesn't grow forever (and re-sync to OneDrive every night).
+    # Rotate the log so it doesn't grow forever (and re-sync to Proton Drive every night).
     if ((Test-Path $LogFile) -and (Get-Item $LogFile).Length -gt $LogMaxBytes) {
         Move-Item -Path $LogFile -Destination "$LogFile.old" -Force
     }

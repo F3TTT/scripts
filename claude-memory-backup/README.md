@@ -1,7 +1,7 @@
 # claude-memory-backup
 
-Claude Code's state lives in `C:\Users\ADMIN\.claude\`, outside OneDrive's sync
-root (`C:\Users\ADMIN\OneDrive\`), so nothing there is backed up unless
+Claude Code's state lives in `C:\Users\ADMIN\.claude\`, outside every synced folder,
+so nothing there is backed up unless
 something copies it out. `backup-memory.ps1` does that daily.
 
 ## What's backed up
@@ -13,7 +13,7 @@ Each snapshot contains:
 - `global\` — `CLAUDE.md`, `settings.json`, `settings.local.json`,
   `statusline.js`, `keybindings.json`, `commands\`, `skills\`
 
-Deliberately excluded: `.credentials.json` (secret — never put in OneDrive),
+Deliberately excluded: `.credentials.json` (secret — never put in a synced folder),
 `history.jsonl`/session transcripts, `plugins\` (reinstallable), caches,
 `file-history`. To add something, edit `$GlobalFiles` / `$GlobalDirs` in the script.
 
@@ -28,7 +28,7 @@ Three independent tiers rather than one:
 - `weekly\<yyyy-Www>\` — last 5
 - `monthly\<yyyy-MM>\` — last 12
 
-If OneDrive's sync corrupts or clobbers one copy, the other tiers give separate
+If Proton Drive's sync corrupts or clobbers one copy, the other tiers give separate
 recovery points.
 
 ## Safety properties
@@ -39,7 +39,7 @@ recovery points.
 - Fails loudly: exits 1 and logs `ERROR:` if the stage is empty or a verify fails.
 - Log is rotated at 256 KB (`backup.log` → `backup.log.old`).
 
-Destination: `C:\Users\ADMIN\OneDrive\Backups\claude-memory\`
+Destination: `C:\Users\ADMIN\Proton Drive\f3ttt\My files\Backups\claude-memory\` (moved from OneDrive 2026-10-10)
 Log: `...\claude-memory\backup.log`
 
 ## Restore
@@ -56,7 +56,7 @@ machine was off/asleep). Registered with:
 $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-NoProfile -ExecutionPolicy Bypass -File "C:\scripts\claude-memory-backup\backup-memory.ps1"'
 $trigger = New-ScheduledTaskTrigger -Daily -At 8:40PM
 $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -DontStopOnIdleEnd -ExecutionTimeLimit (New-TimeSpan -Minutes 10)
-Register-ScheduledTask -TaskName "ClaudeMemoryBackup" -Action $action -Trigger $trigger -Settings $settings -Description "Daily/weekly/monthly rotating backup of Claude Code memory + config into OneDrive" -Force
+Register-ScheduledTask -TaskName "ClaudeMemoryBackup" -Action $action -Trigger $trigger -Settings $settings -Description "Daily/weekly/monthly rotating backup of Claude Code memory + config into Proton Drive" -Force
 ```
 
 Check: `Get-ScheduledTask -TaskName ClaudeMemoryBackup | Get-ScheduledTaskInfo`
