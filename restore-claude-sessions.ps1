@@ -147,7 +147,15 @@ if ($List) { return }
 
 # No --title: Claude Code sets the tab title itself and updates it with its working/done status,
 # and a fixed or suppressed title would freeze that.
+#
+# Each tab first clears every CLAUDE* environment variable. When this script runs from inside a Claude
+# Code session, the tabs would otherwise inherit that session's child-session markers
+# (CLAUDE_CODE_CHILD_SESSION etc.), and Claude Code doesn't save transcripts for child sessions
+# (2026-10-09: five reopened sessions lost everything after the reopen). The command is base64-encoded
+# because wt treats ';' as its own separator.
 $tabs = foreach ($s in $sessions) {
-    "new-tab -d `"$($s.Dir)`" pwsh -NoExit -Command claude --resume $($s.Id)"
+    $inner = "Get-ChildItem Env:CLAUDE* | Remove-Item; claude --resume $($s.Id)"
+    $enc = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($inner))
+    "new-tab -d `"$($s.Dir)`" pwsh -NoExit -EncodedCommand $enc"
 }
-Start-Process wt -ArgumentList ($tabs -join ' ; ')
+Start-Process wt -ArgumentList (@('-w', 'new') + ($tabs -join ' ; '))
