@@ -85,6 +85,10 @@ if ($Save) {
 if ($Saved) {
     if (-not (Test-Path -LiteralPath $snapshotPath)) { Write-Host "No snapshot at $snapshotPath; run with -Save first."; return }
     $snap = Get-Content -LiteralPath $snapshotPath -Raw | ConvertFrom-Json
+    # The snapshot's folder wins over the one recorded in the transcript: it can be edited after a
+    # folder move (e.g. the Desktop leaving OneDrive on 2026-10-09).
+    $snapDirs = @{}
+    foreach ($s in @($snap.Sessions)) { if ($s.Dir) { $snapDirs[$s.Id] = $s.Dir } }
     $running = @(Get-LiveSessions | ForEach-Object sessionId)
     $Id = @($snap.Sessions | ForEach-Object Id | Where-Object { $_ -notin $running })
     Write-Host "Snapshot from $($snap.SavedAt): $(@($snap.Sessions).Count) session(s), $($Id.Count) not running now."
@@ -100,6 +104,9 @@ $files = Get-ChildItem -Path (Join-Path $projectsDir '*\*.jsonl') -File |
         if ($Id) { $_.BaseName -in $Id }
         else { $_.LastWriteTime -ge $from -and $_.LastWriteTime -le $boot }
     } |
+    # The same session can have a transcript in more than one project folder (a copied folder after
+    # a move); open it once, from its newest copy.
+    Group-Object BaseName | ForEach-Object { $_.Group | Sort-Object LastWriteTime | Select-Object -Last 1 } |
     Sort-Object LastWriteTime
 
 if (-not $files) {
@@ -113,6 +120,7 @@ $sessions = foreach ($f in $files) {
     # string (backslashes escaped), so decode it through ConvertFrom-Json.
     $cwdMatch = Select-String -Path $f.FullName -Pattern '"cwd":("(?:[^"\\]|\\.)*")' -List
     $cwd = if ($cwdMatch) { $cwdMatch.Matches[0].Groups[1].Value | ConvertFrom-Json } else { $null }
+    if ($snapDirs -and $snapDirs[$f.BaseName]) { $cwd = $snapDirs[$f.BaseName] }
     if (-not $cwd -or -not (Test-Path -LiteralPath $cwd)) { $cwd = $env:USERPROFILE }
 
     # Latest title record wins: a user-set title beats the auto-generated one.
